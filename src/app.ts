@@ -2,7 +2,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { ConfigService } from "./config/config.service";
 import { Command } from "./commands/abstract.command";
 import { StartCommand } from "./commands/command.start";
-import { AddParametersCommand } from "./commands/command.add.parameters";
+import { AddParametersCommand } from "./commands/command.add-parameters";
 
 class Bot {
     private bot: TelegramBot;
