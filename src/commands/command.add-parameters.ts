@@ -27,8 +27,8 @@ export class AddParametersCommand extends Command {
                 chatId,
                 `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
                 \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
+                0,
                 { parse_mode: "HTML", ...this.markupCancel },
-                0
             );
         });
 
@@ -46,23 +46,29 @@ export class AddParametersCommand extends Command {
 
             if (isNaN(weight) || weight <= 0) {
                 this.bot.deleteMessage(chatId, message.message_id);
-                this.deleteTrackedMessage(chatId, 0);
+                if (typeof this.lastMessages[1] === "undefined") {
+                    this.editTrackedMessage(
+                        chatId,
+                        `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
+                        \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
+                        0,
+                        { parse_mode: "HTML" }
+                    );
+                }
 
                 //-------------------------------------1--------------------------------------//
                 if (typeof this.lastMessages[1] === "undefined") {
                     this.sendWithTracking(
                         chatId,
                         "Пожалуйста, введите корректное число для веса.",
+                        1,
                         this.markupCancel,
-                        1
                     );
                 }
                 return;
             }
 
             this.waitingForWeight.delete(chatId);
-
-            this.deleteTrackedMessage(chatId, 0);
             this.deleteTrackedMessage(chatId, 1);
 
             const waterNorm = (weight * 0.035).toFixed(2);
@@ -87,13 +93,21 @@ export class AddParametersCommand extends Command {
         });
     }
 
-    private sendWithTracking(chatId: number, text: string, options?: TelegramBot.SendMessageOptions, index?: 0 | 1): void {
+    private sendWithTracking(chatId: number, text: string, index?: 0 | 1, options?: TelegramBot.SendMessageOptions): void {
         this.bot.sendMessage(chatId, text, options)
             .then(sentMessage => {
                 if (typeof index === "number") {
                     this.lastMessages[index] = sentMessage.message_id;
                 }
             });
+    }
+
+    private editTrackedMessage(chatId: number, text: string, index: 0 | 1, options?: TelegramBot.EditMessageTextOptions): void {
+        this.bot.editMessageText(text, {
+            chat_id: chatId,
+            message_id: this.lastMessages[index],
+            ...options
+        })
     }
 
     private deleteTrackedMessage(chatId: number, index: 0 | 1): void {
