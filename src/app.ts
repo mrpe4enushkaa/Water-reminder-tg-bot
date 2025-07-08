@@ -1,6 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import { ConfigService } from "./config/config.service";
-import { Command } from "./commands/command.main";
+import { Command } from "./commands/abstract.command";
 import { StartCommand } from "./commands/command.start";
 
 class Bot {
@@ -8,11 +8,13 @@ class Bot {
     private commands: Command[] = [];
 
     constructor(private readonly token: string) {
-        this.bot = new TelegramBot(token, { polling: true });
+        this.bot = new TelegramBot(this.token, { polling: true });
     }
 
     private registerCommands(): void {
-        this.commands.push(new StartCommand(this.bot));
+        this.commands = [
+            new StartCommand(this.bot)
+        ];
 
         for (const command of this.commands) {
             command.handle();
@@ -26,5 +28,5 @@ class Bot {
 
 const config = new ConfigService();
 
-const bot = new Bot(config.getToken());
+const bot = new Bot(config.get("TOKEN"));
 bot.init();

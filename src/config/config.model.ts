@@ -1,3 +1,3 @@
 export interface ConfigModel {
-    getToken(): string;
+    get(key: string): string;
 }

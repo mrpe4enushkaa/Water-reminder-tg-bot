@@ -1,21 +1,29 @@
-import dotenv from "dotenv";
+import { config, DotenvParseOutput } from "dotenv";
 import { ConfigModel } from "./config.model";
-dotenv.config({ quiet: true });
 
 export class ConfigService implements ConfigModel {
-    private config: string;
+    private config: DotenvParseOutput;
 
     constructor() {
-        const token: string | undefined = process.env.TOKEN;
+        const { error, parsed } = config();
 
-        if (!token) {
-            throw new Error("TOKEN not found");
+        if (error) {
+            throw new Error(`File ".env" not found`);
+        }
+        if (!parsed) {
+            throw new Error(`File ".env" is empty`);
         }
 
-        this.config = token;
+        this.config = parsed;
     }
 
-    getToken(): string {
-        return this.config;
+    public get(key: string): string {
+        const result = this.config[key];
+
+        if (!result) {
+            throw new Error(`Invalid type for key: ${key}`);
+        }
+
+        return result;
     }
 }
