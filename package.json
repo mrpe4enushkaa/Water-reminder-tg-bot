@@ -1,0 +1,23 @@
+{
+  "name": "water-tg-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.1.0",
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "@types/node-telegram-bot-api": "^0.64.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
