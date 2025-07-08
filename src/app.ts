@@ -1,5 +1,5 @@
 import TelegramBot from "node-telegram-bot-api";
-import { Config } from "./config/config";
+import { ConfigService } from "./config/config.service";
 import { Command } from "./commands/command.main";
 import { StartCommand } from "./commands/command.start";
 
@@ -24,7 +24,7 @@ class Bot {
     }
 }
 
-const config = new Config();
+const config = new ConfigService();
 
 const bot = new Bot(config.getToken());
 bot.init();

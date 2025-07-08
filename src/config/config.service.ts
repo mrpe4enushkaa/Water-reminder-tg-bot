@@ -1,12 +1,8 @@
 import dotenv from "dotenv";
-import { IConfig } from "./config.interface";
+import { ConfigModel } from "./config.model";
 dotenv.config({ quiet: true });
 
-// export const config: IConfig = {
-//     token: process.env.TOKEN || (() => { throw new Error("TOKEN not found") })()
-// };
-
-export class Config implements IConfig {
+export class ConfigService implements ConfigModel {
     private config: string;
 
     constructor() {
