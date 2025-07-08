@@ -1,7 +1,7 @@
 import { config, DotenvParseOutput } from "dotenv";
-import { ConfigModel } from "./config.model";
+import { ConfigOptions } from "./config.interface";
 
-export class ConfigService implements ConfigModel {
+export class ConfigService implements ConfigOptions {
     private config: DotenvParseOutput;
 
     constructor() {

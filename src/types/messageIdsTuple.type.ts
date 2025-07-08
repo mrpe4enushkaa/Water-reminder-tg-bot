@@ -1,0 +1,1 @@
+export type MessageIdsTuple = [number | undefined, number | undefined];

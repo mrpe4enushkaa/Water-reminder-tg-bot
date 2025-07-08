@@ -1,14 +1,17 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
+import { MessageIdsTuple } from "../types/messageIdsTuple.type";
+import { CallbackData } from "../types/callbackData.enum";
 
 export class AddParametersCommand extends Command {
-    private readonly markupCancel: TelegramBot.SendMessageOptions = {
+    //-------------------------------------------0----------1----//
+    private lastMessages: MessageIdsTuple = [undefined, undefined];
+
+    private markupCancel: TelegramBot.SendMessageOptions = {
         reply_markup: {
-            inline_keyboard: [[{ text: "Отменить действие", callback_data: "CANCEL_ADD" }]]
+            inline_keyboard: [[{ text: "Отменить действие", callback_data: CallbackData.CANCEL_ADD }]]
         }
     }
-    //----------------------------0-------------------1-----------------------------------//
-    private lastMessages: [number | undefined, number | undefined] = [undefined, undefined];
 
     constructor(bot: TelegramBot, waitingForWeight: Set<number>) {
         super(bot, waitingForWeight);
@@ -20,13 +23,13 @@ export class AddParametersCommand extends Command {
 
             this.waitingForWeight.add(chatId);
             //-----------------------------------------------0-----------------------------------------------//
-            this.bot.sendMessage(chatId, `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
+            this.sendWithTracking(
+                chatId,
+                `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
                 \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
-                {
-                    parse_mode: "HTML",
-                    ...this.markupCancel
-                }
-            ).then(sentMessage => this.lastMessages[0] = sentMessage.message_id);
+                { parse_mode: "HTML", ...this.markupCancel },
+                0
+            );
         });
 
         this.bot.on("message", (message): void => {
@@ -39,33 +42,33 @@ export class AddParametersCommand extends Command {
                 return;
             };
 
-            if (this.waitingForWeight.has(chatId)) {
-                const weight = parseFloat(message.text || "");
+            const weight = parseFloat(message.text || "");
 
-                if (isNaN(weight) || weight <= 0) {
-                    this.bot.deleteMessage(chatId, message.message_id);
+            if (isNaN(weight) || weight <= 0) {
+                this.bot.deleteMessage(chatId, message.message_id);
+                this.deleteTrackedMessage(chatId, 0);
 
-                    if (typeof this.lastMessages[0] === "number") {
-                        this.bot.deleteMessage(chatId, this.lastMessages[0]);
-                        this.lastMessages[0] = undefined;
-                    };
-
-                    //-------------------------------------1--------------------------------------//
-                    if (typeof this.lastMessages[1] === "undefined") {
-                        this.bot.sendMessage(chatId, "Пожалуйста, введите корректное число для веса.", {
-                            ...this.markupCancel
-                        }).then(sentMessage => this.lastMessages[1] = sentMessage.message_id);
-                    } 
-                    return;
+                //-------------------------------------1--------------------------------------//
+                if (typeof this.lastMessages[1] === "undefined") {
+                    this.sendWithTracking(
+                        chatId,
+                        "Пожалуйста, введите корректное число для веса.",
+                        this.markupCancel,
+                        1
+                    );
                 }
-
-                this.waitingForWeight.delete(chatId);
-
-                const waterNorm = (weight * 0.035).toFixed(2);
-
-                this.bot.sendMessage(chatId, `Спасибо! Твой вес: ${weight} кг.
-                    \nРекомендуемая суточная норма воды: ${waterNorm} литров 💧`);
+                return;
             }
+
+            this.waitingForWeight.delete(chatId);
+
+            this.deleteTrackedMessage(chatId, 0);
+            this.deleteTrackedMessage(chatId, 1);
+
+            const waterNorm = (weight * 0.035).toFixed(2);
+
+            this.bot.sendMessage(chatId, `Спасибо! Твой вес: ${weight} кг.
+                    \nРекомендуемая суточная норма воды: ${waterNorm} литров 💧`);
         });
 
         this.bot.on("callback_query", (query): void => {
@@ -73,7 +76,7 @@ export class AddParametersCommand extends Command {
             const messageId = query.message?.message_id;
             const data = query?.data;
 
-            if (data === "CANCEL_ADD" && typeof chatId !== "undefined") {
+            if (data === CallbackData.CANCEL_ADD && typeof chatId !== "undefined") {
                 this.waitingForWeight.delete(chatId);
 
                 this.bot.editMessageText("Действие отменено.", {
@@ -82,6 +85,22 @@ export class AddParametersCommand extends Command {
                 });
             }
         });
+    }
+
+    private sendWithTracking(chatId: number, text: string, options?: TelegramBot.SendMessageOptions, index?: 0 | 1): void {
+        this.bot.sendMessage(chatId, text, options)
+            .then(sentMessage => {
+                if (typeof index === "number") {
+                    this.lastMessages[index] = sentMessage.message_id;
+                }
+            });
+    }
+
+    private deleteTrackedMessage(chatId: number, index: 0 | 1): void {
+        if (typeof this.lastMessages[index] === "number") {
+            this.bot.deleteMessage(chatId, this.lastMessages[index]);
+            this.lastMessages[index] = undefined;
+        }
     }
 }
 
