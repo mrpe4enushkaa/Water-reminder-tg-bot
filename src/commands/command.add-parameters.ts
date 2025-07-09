@@ -1,9 +1,9 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
-import { MessagesIdsTuple } from "../models/messageIdsTuple.type";
-import { CallbackData } from "../models/callbackData.enum";
-import { WaitingStates } from "../models/waitingStates";
-import { UserProvidedData } from "../models/userProvidedData.type";
+import { MessagesIdsTuple } from "../models/messages-ids.type";
+import { CallbackData } from "../models/callback-data.enum";
+import { WaitingStates } from "../models/waiting-states.type";
+import { UserProvidedData } from "../models/user-provided-data.type";
 
 export class AddParametersCommand extends Command {
     private waitingStates: Record<WaitingStates, Set<number>> = {
