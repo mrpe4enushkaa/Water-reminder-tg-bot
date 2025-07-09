@@ -2,8 +2,8 @@ import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 
 export class StartCommand extends Command {
-    constructor(bot: TelegramBot, waitingForWeight: Set<number>) {
-        super(bot, waitingForWeight);
+    constructor(bot: TelegramBot) {
+        super(bot);
     }
 
     public handle(): void {

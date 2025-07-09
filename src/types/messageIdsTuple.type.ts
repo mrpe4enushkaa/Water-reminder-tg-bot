@@ -1,1 +1,1 @@
-export type MessageIdsTuple = [number | undefined, number | undefined];
+export type MessagesIdsTuple = [number | undefined, number | undefined];

@@ -1,11 +1,12 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
-import { MessageIdsTuple } from "../types/messageIdsTuple.type";
+import { MessagesIdsTuple } from "../types/messageIdsTuple.type";
 import { CallbackData } from "../types/callbackData.enum";
 
 export class AddParametersCommand extends Command {
     //-------------------------------------------0----------1----//
-    private lastMessages: MessageIdsTuple = [undefined, undefined];
+    private waitingForWeight: Set<number> = new Set();
+    private lastMessages: MessagesIdsTuple = [undefined, undefined];
 
     private markupCancel: TelegramBot.SendMessageOptions = {
         reply_markup: {
@@ -13,8 +14,8 @@ export class AddParametersCommand extends Command {
         }
     }
 
-    constructor(bot: TelegramBot, waitingForWeight: Set<number>) {
-        super(bot, waitingForWeight);
+    constructor(bot: TelegramBot) {
+        super(bot);
     }
 
     public handle(): void {
@@ -42,19 +43,23 @@ export class AddParametersCommand extends Command {
                 return;
             };
 
-            const weight = parseFloat(message.text || "");
-
-            if (isNaN(weight) || weight <= 0) {
-                this.bot.deleteMessage(chatId, message.message_id);
-                if (typeof this.lastMessages[1] === "undefined") {
-                    this.editTrackedMessage(
-                        chatId,
-                        `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
+            if (typeof this.lastMessages[1] === "undefined") {
+                this.editTrackedMessage(
+                    chatId,
+                    `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
                         \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
-                        0,
-                        { parse_mode: "HTML" }
-                    );
-                }
+                    0,
+                    { parse_mode: "HTML" }
+                );
+            }
+
+            const text = message?.text?.trim() || "";
+            const weight = parseFloat(text);
+
+            const isValid = /^(\d+(\.\d+)?)(\s?кг)?$/i.test(text) && weight > 0;
+
+            if (!isValid) {
+                this.bot.deleteMessage(chatId, message.message_id);
 
                 //-------------------------------------1--------------------------------------//
                 if (typeof this.lastMessages[1] === "undefined") {
@@ -107,7 +112,7 @@ export class AddParametersCommand extends Command {
             chat_id: chatId,
             message_id: this.lastMessages[index],
             ...options
-        })
+        });
     }
 
     private deleteTrackedMessage(chatId: number, index: 0 | 1): void {

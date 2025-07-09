@@ -7,7 +7,6 @@ import { AddParametersCommand } from "./commands/command.add-parameters";
 class Bot {
     private bot: TelegramBot;
     private commands: Command[] = [];
-    private waitingForWeight: Set<number> = new Set();
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -15,8 +14,8 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new StartCommand(this.bot, this.waitingForWeight),
-            new AddParametersCommand(this.bot, this.waitingForWeight)
+            new StartCommand(this.bot),
+            new AddParametersCommand(this.bot)
         ];
 
         for (const command of this.commands) {
