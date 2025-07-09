@@ -1,0 +1,1 @@
+export type WaitingStates = "weight" | "city" | "time";

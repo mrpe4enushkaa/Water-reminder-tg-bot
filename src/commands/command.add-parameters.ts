@@ -1,15 +1,23 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
-import { MessagesIdsTuple } from "../types/messageIdsTuple.type";
-import { CallbackData } from "../types/callbackData.enum";
+import { MessagesIdsTuple } from "../models/messageIdsTuple.type";
+import { CallbackData } from "../models/callbackData.enum";
+import { WaitingStates } from "../models/waitingStates";
+import { UserProvidedData } from "../models/userProvidedData.type";
 
 export class AddParametersCommand extends Command {
-    //-------------------------------------------0----------1----//
-    private waitingForWeight: Set<number> = new Set();
-    private waitingForTime: Set<number> = new Set();
+    private waitingStates: Record<WaitingStates, Set<number>> = {
+        weight: new Set(),
+        city: new Set(),
+        time: new Set(),
+    }
     private lastMessages: MessagesIdsTuple = [undefined, undefined];
-    private dailyGoal: number = 0;
-    private weight: number = 0
+    private userProvidedData: UserProvidedData = {
+        weight: undefined,
+        city: undefined,
+        time: [undefined, undefined],
+        goal: undefined
+    }
 
     private markupCancel: TelegramBot.SendMessageOptions = {
         reply_markup: {
@@ -25,8 +33,7 @@ export class AddParametersCommand extends Command {
         this.bot.onText(/^\/add_parameters$/, (message): void => {
             const chatId = message.chat.id;
 
-            this.waitingForWeight.add(chatId);
-            //-----------------------------------------------0-----------------------------------------------//
+            this.waitingStates.weight.add(chatId);
             this.sendWithTracking(
                 chatId,
                 `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
@@ -40,8 +47,9 @@ export class AddParametersCommand extends Command {
             const chatId = message.chat.id;
 
             if (message.text?.startsWith("/")) {
-                this.waitingForWeight.delete(chatId);
-                this.waitingForTime.delete(chatId);
+                this.waitingStates.weight.delete(chatId);
+                this.waitingStates.city.delete(chatId); //?
+                this.waitingStates.time.delete(chatId);
                 if (typeof this.lastMessages[0] !== "undefined") {
                     this.bot.editMessageText("Действие отменено.", {
                         chat_id: chatId,
@@ -55,7 +63,8 @@ export class AddParametersCommand extends Command {
                 return;
             };
 
-            if (this.waitingForWeight.has(chatId)) {
+            //----------------WEIGHT------------------//
+            if (this.waitingStates.weight.has(chatId)) {
                 if (typeof this.lastMessages[1] === "undefined") {
                     this.editTrackedMessage(
                         chatId,
@@ -73,7 +82,6 @@ export class AddParametersCommand extends Command {
 
                 if (!isValid) {
                     this.bot.deleteMessage(chatId, message.message_id);
-                    //-------------------------------------1--------------------------------------//
                     if (typeof this.lastMessages[1] === "undefined") {
                         this.sendWithTracking(
                             chatId,
@@ -87,13 +95,58 @@ export class AddParametersCommand extends Command {
 
                 this.deleteTrackedMessage(chatId, 1);
 
-                this.dailyGoal = parseFloat((weight * 0.035).toFixed(2));
-                this.weight = weight;
-
-                this.waitingForWeight.delete(chatId);
-                this.waitingForTime.add(chatId);
+                this.waitingStates.weight.delete(chatId);
+                this.waitingStates.city.add(chatId);
 
                 this.lastMessages = [undefined, undefined];
+
+                this.userProvidedData.goal = parseFloat((weight * 0.035).toFixed(2));
+                this.userProvidedData.weight = weight;
+
+                this.sendWithTracking(
+                    chatId,
+                    `Введи город в котором ты находишься`,
+                    0,
+                    { ...this.markupCancel }
+                );
+                return;
+            }
+
+            //----------------CITY------------------//
+            if (this.waitingStates.city.has(chatId)) {
+                if (typeof this.lastMessages[1] === "undefined") {
+                    this.editTrackedMessage(
+                        chatId,
+                        `Введи город в котором ты находишься`,
+                        0,
+                        { parse_mode: "HTML" }
+                    );
+                }
+
+                const text = message?.text || "";
+                const isValid = /^[A-ZА-ЯЁ][a-zа-яё\- ]{1,49}$/iu.test(text);
+
+                if (!isValid) {
+                    this.bot.deleteMessage(chatId, message.message_id);
+                    if (typeof this.lastMessages[1] === "undefined") {
+                        this.sendWithTracking(
+                            chatId,
+                            "Пожалуйста, введите корректное название города.",
+                            1,
+                            this.markupCancel,
+                        );
+                    }
+                    return;
+                }
+
+                this.deleteTrackedMessage(chatId, 1);
+
+                this.waitingStates.city.delete(chatId);
+                this.waitingStates.time.add(chatId);
+
+                this.lastMessages = [undefined, undefined];
+
+                this.userProvidedData.city = text;
 
                 this.sendWithTracking(
                     chatId,
@@ -106,7 +159,8 @@ export class AddParametersCommand extends Command {
                 return;
             }
 
-            if (this.waitingForTime.has(chatId)) {
+            //----------------TIME------------------//
+            if (this.waitingStates.time.has(chatId)) {
                 if (typeof this.lastMessages[1] === "undefined") {
                     this.editTrackedMessage(
                         chatId,
@@ -126,7 +180,7 @@ export class AddParametersCommand extends Command {
                     if (typeof this.lastMessages[1] === "undefined") {
                         this.sendWithTracking(
                             chatId,
-                            "Пожалуйста, введите корректное число для веса.",
+                            "Пожалуйста, введите корректное время.",
                             1,
                             this.markupCancel,
                         );
@@ -134,11 +188,21 @@ export class AddParametersCommand extends Command {
                     return;
                 }
 
-                this.waitingForTime.delete(chatId);
+                const [wakeStr, sleepStr] = text.split(",").map(time => time.trim());
+
                 this.deleteTrackedMessage(chatId, 1);
 
-                this.bot.sendMessage(chatId, `Спасибо! Твой вес: ${this.weight} кг.
-                        \nРекомендуемая суточная норма воды: ${this.dailyGoal} литров 💧`);
+                this.waitingStates.time.delete(chatId);
+
+                this.lastMessages = [undefined, undefined];
+
+                this.userProvidedData.time = [wakeStr, sleepStr]
+
+                this.bot.sendMessage(chatId, `Спасибо! 
+                    \nТвой вес: ${this.userProvidedData.weight} кг, 
+                    \nгород: ${this.userProvidedData.city},
+                    \nрабочее время: ${this.userProvidedData.time[0]}-${this.userProvidedData.time[1]}
+                    \nРекомендуемая суточная норма воды: ${this.userProvidedData.goal} литров 💧`);
                 return;
             }
         });
@@ -148,8 +212,8 @@ export class AddParametersCommand extends Command {
             const data = query?.data;
 
             if (data === CallbackData.CANCEL_ADD && typeof chatId !== "undefined") {
-                this.waitingForWeight.delete(chatId);
-                this.waitingForTime.delete(chatId);
+                this.waitingStates.weight.delete(chatId);
+                this.waitingStates.time.delete(chatId);
                 if (typeof this.lastMessages[0] === "number") {
                     this.editTrackedMessage(chatId, "Действие отменено.", 0);
                 }

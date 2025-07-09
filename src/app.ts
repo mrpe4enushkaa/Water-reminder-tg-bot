@@ -40,5 +40,5 @@ class Bot {
 
 const config = new ConfigService();
 
-const bot = new Bot(config.get("TOKEN"));
+const bot = new Bot(config.get("BOT_TOKEN"));
 bot.init();
