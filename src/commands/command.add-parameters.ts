@@ -6,7 +6,10 @@ import { CallbackData } from "../types/callbackData.enum";
 export class AddParametersCommand extends Command {
     //-------------------------------------------0----------1----//
     private waitingForWeight: Set<number> = new Set();
+    private waitingForTime: Set<number> = new Set();
     private lastMessages: MessagesIdsTuple = [undefined, undefined];
+    private dailyGoal: number = 0;
+    private weight: number = 0
 
     private markupCancel: TelegramBot.SendMessageOptions = {
         reply_markup: {
@@ -36,64 +39,123 @@ export class AddParametersCommand extends Command {
         this.bot.on("message", (message): void => {
             const chatId = message.chat.id;
 
-            if (!this.waitingForWeight.has(chatId)) return;
-
             if (message.text?.startsWith("/")) {
                 this.waitingForWeight.delete(chatId);
+                this.waitingForTime.delete(chatId);
+                if (typeof this.lastMessages[0] !== "undefined") {
+                    this.bot.editMessageText("Действие отменено.", {
+                        chat_id: chatId,
+                        message_id: this.lastMessages[0]
+                    }).catch(() => { });
+                }
+                if (typeof this.lastMessages[1] !== "undefined") {
+                    this.deleteTrackedMessage(chatId, 1);
+                }
+                this.lastMessages = [undefined, undefined];
                 return;
             };
 
-            if (typeof this.lastMessages[1] === "undefined") {
-                this.editTrackedMessage(
-                    chatId,
-                    `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
-                        \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
-                    0,
-                    { parse_mode: "HTML" }
-                );
-            }
-
-            const text = message?.text?.trim() || "";
-            const weight = parseFloat(text);
-
-            const isValid = /^(\d+(\.\d+)?)(\s?кг)?$/i.test(text) && weight > 0;
-
-            if (!isValid) {
-                this.bot.deleteMessage(chatId, message.message_id);
-
-                //-------------------------------------1--------------------------------------//
+            if (this.waitingForWeight.has(chatId)) {
                 if (typeof this.lastMessages[1] === "undefined") {
-                    this.sendWithTracking(
+                    this.editTrackedMessage(
                         chatId,
-                        "Пожалуйста, введите корректное число для веса.",
-                        1,
-                        this.markupCancel,
+                        `<b>💧 Введите ваш вес, чтобы я мог рассчитать норму воды на день!</b>
+                        \n<i>Забота о себе начинается с маленьких шагов 😊</i>`,
+                        0,
+                        { parse_mode: "HTML" }
                     );
                 }
+
+                const text = message?.text?.trim() || "";
+                const weight = parseFloat(text);
+
+                const isValid = /^(\d+(\.\d+)?)(\s?кг)?$/i.test(text) && weight > 0;
+
+                if (!isValid) {
+                    this.bot.deleteMessage(chatId, message.message_id);
+                    //-------------------------------------1--------------------------------------//
+                    if (typeof this.lastMessages[1] === "undefined") {
+                        this.sendWithTracking(
+                            chatId,
+                            "Пожалуйста, введите корректное число для веса.",
+                            1,
+                            this.markupCancel,
+                        );
+                    }
+                    return;
+                }
+
+                this.deleteTrackedMessage(chatId, 1);
+
+                this.dailyGoal = parseFloat((weight * 0.035).toFixed(2));
+                this.weight = weight;
+
+                this.waitingForWeight.delete(chatId);
+                this.waitingForTime.add(chatId);
+
+                this.lastMessages = [undefined, undefined];
+
+                this.sendWithTracking(
+                    chatId,
+                    `⏰ Теперь отправь время, когда ты просыпаешься и ложишься спать 😴
+                    \nФормат такой: 07:30, 23:00 (вид: 00:00 – 23:59) 🕒
+                    \nПример: 08:00, 22:30 ✅`,
+                    0,
+                    { ...this.markupCancel }
+                );
                 return;
             }
 
-            this.waitingForWeight.delete(chatId);
-            this.deleteTrackedMessage(chatId, 1);
+            if (this.waitingForTime.has(chatId)) {
+                if (typeof this.lastMessages[1] === "undefined") {
+                    this.editTrackedMessage(
+                        chatId,
+                        `⏰ Теперь отправь время, когда ты просыпаешься и ложишься спать 😴
+                        \nФормат такой: 07:30, 23:00 (вид: 00:00 – 23:59) 🕒
+                        \nПример: 08:00, 22:30 ✅`,
+                        0,
+                        { parse_mode: "HTML" }
+                    );
+                }
 
-            const waterNorm = (weight * 0.035).toFixed(2);
+                const text = message?.text?.trim() || "";
+                const isValid = /^([01]\d|2[0-3]):[0-5]\d,\s?([01]\d|2[0-3]):[0-5]\d$/.test(text);
 
-            this.bot.sendMessage(chatId, `Спасибо! Твой вес: ${weight} кг.
-                    \nРекомендуемая суточная норма воды: ${waterNorm} литров 💧`);
+                if (!isValid) {
+                    this.bot.deleteMessage(chatId, message.message_id);
+                    if (typeof this.lastMessages[1] === "undefined") {
+                        this.sendWithTracking(
+                            chatId,
+                            "Пожалуйста, введите корректное число для веса.",
+                            1,
+                            this.markupCancel,
+                        );
+                    }
+                    return;
+                }
+
+                this.waitingForTime.delete(chatId);
+                this.deleteTrackedMessage(chatId, 1);
+
+                this.bot.sendMessage(chatId, `Спасибо! Твой вес: ${this.weight} кг.
+                        \nРекомендуемая суточная норма воды: ${this.dailyGoal} литров 💧`);
+                return;
+            }
         });
 
         this.bot.on("callback_query", (query): void => {
             const chatId = query.message?.chat.id;
-            const messageId = query.message?.message_id;
             const data = query?.data;
 
             if (data === CallbackData.CANCEL_ADD && typeof chatId !== "undefined") {
                 this.waitingForWeight.delete(chatId);
-
-                this.bot.editMessageText("Действие отменено.", {
-                    chat_id: chatId,
-                    message_id: messageId
-                });
+                this.waitingForTime.delete(chatId);
+                if (typeof this.lastMessages[0] === "number") {
+                    this.editTrackedMessage(chatId, "Действие отменено.", 0);
+                }
+                if (typeof this.lastMessages[1] === "number") {
+                    this.deleteTrackedMessage(chatId, 1);
+                }
             }
         });
     }

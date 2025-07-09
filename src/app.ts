@@ -12,6 +12,15 @@ class Bot {
         this.bot = new TelegramBot(this.token, { polling: true });
     }
 
+    private setCommands(): void {
+        this.bot.setMyCommands([
+            { command: "/start", description: "Старт бота" },
+            { command: "/add_parameters", description: "Ввести параметры" }
+        ], {
+            language_code: "ru"
+        });
+    }
+
     private registerCommands(): void {
         this.commands = [
             new StartCommand(this.bot),
@@ -24,6 +33,7 @@ class Bot {
     }
 
     public init(): void {
+        this.setCommands();
         this.registerCommands();
     }
 }
