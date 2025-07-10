@@ -8,8 +8,8 @@ import { prompts } from "../utils/prompts";
 import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
-    private waitingStates = new Map<number, WaitingStates>;
-    private lastMessages: MessagesIdsTuple = [undefined, undefined];
+    // private waitingStates = new Map<number, WaitingStates>;
+    // private lastMessages: MessagesIdsTuple = [undefined, undefined];
     private userProvidedData: UserProvidedData = {
         weight: 0,
         city: "",
@@ -23,8 +23,8 @@ export class AddParametersCommand extends Command {
         }
     }
 
-    constructor(bot: TelegramBot) {
-        super(bot);
+    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: MessagesIdsTuple) {
+        super(bot, waitingStates, lastMessages);
     }
 
     public handle(): void {
@@ -178,8 +178,6 @@ export class AddParametersCommand extends Command {
         }
 
         const text = message?.text?.trim() || "";
-
-        console.log(isValidTime(text))
 
         if (!isValidTime(text)) {
             this.bot.deleteMessage(chatId, message.message_id);

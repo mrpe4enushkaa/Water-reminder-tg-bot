@@ -3,10 +3,16 @@ import { ConfigService } from "./config/config.service";
 import { Command } from "./commands/abstract.command";
 import { StartCommand } from "./commands/command.start";
 import { AddParametersCommand } from "./commands/command.add-parameters";
+import { NotificationCommand } from "./commands/command.notification";
+import { MessagesIdsTuple } from "./models/messages-ids.type";
+import { WaitingStates } from "./models/waiting-states.type";
 
 class Bot {
     private bot: TelegramBot;
     private commands: Command[] = [];
+
+    private waitingStates = new Map<number, WaitingStates>;
+    private lastMessages: MessagesIdsTuple = [undefined, undefined];
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -24,7 +30,8 @@ class Bot {
     private registerCommands(): void {
         this.commands = [
             new StartCommand(this.bot),
-            new AddParametersCommand(this.bot)
+            new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages),
+            new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
         ];
 
         for (const command of this.commands) {
