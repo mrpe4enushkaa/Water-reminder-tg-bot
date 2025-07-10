@@ -5,7 +5,4 @@ export const isValidCity = (text: string) =>
     /^[A-ZА-ЯЁ][a-zа-яё\- ]{3,49}$/iu.test(text.trim());
 
 export const isValidTime = (text: string) =>
-    /^([01]\d|2[0-3]):[0-5]\d,\s?([01]\d|2[0-3]):[0-5]\d$/.test(text.trim());
-
-export const isValidPortions = (text: string) =>
-    /^\d+$/.test(text.trim());
+    /^([01]\d|2[0-3]):[0-5]\d\s*-\s*([01]\d|2[0-3]):[0-5]\d$/.test(text.trim());

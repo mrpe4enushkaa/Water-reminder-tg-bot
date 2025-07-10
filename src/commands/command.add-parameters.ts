@@ -5,7 +5,7 @@ import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { prompts } from "../utils/prompts";
-import { isValidWeight, isValidCity, isValidTime, isValidPortions } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
     private waitingStates = new Map<number, WaitingStates>;
@@ -14,9 +14,7 @@ export class AddParametersCommand extends Command {
         weight: 0,
         city: "",
         time: ["", ""],
-        goal: 0,
-        portions: 0,
-        waterPerServing: 0
+        goal: 0
     }
 
     private markupCancel: TelegramBot.SendMessageOptions = {
@@ -67,8 +65,6 @@ export class AddParametersCommand extends Command {
                     return this.handleCity(chatId, message);
                 case WaitingStates.TIME:
                     return this.handleTime(chatId, message);
-                case WaitingStates.PORTIONS:
-                    return this.handlePortions(chatId, message);
             }
         });
 
@@ -183,6 +179,8 @@ export class AddParametersCommand extends Command {
 
         const text = message?.text?.trim() || "";
 
+        console.log(isValidTime(text))
+
         if (!isValidTime(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
             if (typeof this.lastMessages[1] === "undefined") {
@@ -196,52 +194,15 @@ export class AddParametersCommand extends Command {
             return;
         }
 
-        const [wakeStr, sleepStr] = text.split(",").map(time => time.trim());
+        const [wakeStr, sleepStr] = text.split("-").map(time => time.trim());
 
         this.deleteTrackedMessage(chatId, 1);
 
         this.waitingStates.delete(chatId);
-        this.waitingStates.set(chatId, WaitingStates.PORTIONS);
 
         this.lastMessages = [undefined, undefined];
 
         this.userProvidedData.time = [wakeStr, sleepStr];
-
-        this.sendWithTracking(chatId, prompts.addParameters.portions, 0, this.markupCancel);
-    }
-
-    private handlePortions(chatId: number, message: TelegramBot.Message) {
-        if (typeof this.lastMessages[1] === "undefined") {
-            this.editTrackedMessage(
-                chatId,
-                prompts.addParameters.portions,
-                0
-            );
-        }
-
-        const text = message?.text?.trim() || "";
-
-        if (!isValidPortions(text)) {
-            this.bot.deleteMessage(chatId, message.message_id);
-            if (typeof this.lastMessages[1] === "undefined") {
-                this.sendWithTracking(
-                    chatId,
-                    prompts.addParameters.correctPortions,
-                    1,
-                    this.markupCancel,
-                );
-            }
-            return;
-        }
-
-        this.deleteTrackedMessage(chatId, 1);
-
-        this.waitingStates.delete(chatId);
-
-        this.lastMessages = [undefined, undefined];
-
-        this.userProvidedData.portions = parseFloat(text);
-        this.userProvidedData.waterPerServing = parseFloat((this.userProvidedData.goal / this.userProvidedData.portions).toFixed(2));
 
         this.bot.sendMessage(chatId, prompts.addParameters.end(this.userProvidedData));
     }
@@ -268,6 +229,10 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, this.lastMessages[index]);
             this.lastMessages[index] = undefined;
         }
+    }
+
+    private async saveParameters(data: UserProvidedData): Promise<void> {
+
     }
 }
 
