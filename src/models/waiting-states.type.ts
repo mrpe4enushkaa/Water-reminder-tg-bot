@@ -1,1 +1,5 @@
-export type WaitingStates = "weight" | "city" | "time";
+export enum WaitingStates {
+    WEIGHT = "weight",
+    CITY = "city",
+    TIME = "time"
+}
