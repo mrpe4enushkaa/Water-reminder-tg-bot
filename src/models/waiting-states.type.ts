@@ -1,5 +1,6 @@
 export enum WaitingStates {
     WEIGHT = "weight",
     CITY = "city",
-    TIME = "time"
+    TIME = "time",
+    PORTIONS = "portions"
 }

@@ -5,17 +5,18 @@ import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { prompts } from "../utils/prompts";
-import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime, isValidPortions } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
     private waitingStates = new Map<number, WaitingStates>;
-
     private lastMessages: MessagesIdsTuple = [undefined, undefined];
     private userProvidedData: UserProvidedData = {
-        weight: undefined,
-        city: undefined,
-        time: [undefined, undefined],
-        goal: undefined
+        weight: 0,
+        city: "",
+        time: ["", ""],
+        goal: 0,
+        portions: 0,
+        waterPerServing: 0
     }
 
     private markupCancel: TelegramBot.SendMessageOptions = {
@@ -37,7 +38,7 @@ export class AddParametersCommand extends Command {
                 chatId,
                 prompts.addParameters.weight,
                 0,
-                { parse_mode: "HTML", ...this.markupCancel },
+                { ...this.markupCancel },
             );
         });
 
@@ -66,6 +67,8 @@ export class AddParametersCommand extends Command {
                     return this.handleCity(chatId, message);
                 case WaitingStates.TIME:
                     return this.handleTime(chatId, message);
+                case WaitingStates.PORTIONS:
+                    return this.handlePortions(chatId, message);
             }
         });
 
@@ -90,8 +93,7 @@ export class AddParametersCommand extends Command {
             this.editTrackedMessage(
                 chatId,
                 prompts.addParameters.weight,
-                0,
-                { parse_mode: "HTML" }
+                0
             );
         }
 
@@ -134,8 +136,7 @@ export class AddParametersCommand extends Command {
             this.editTrackedMessage(
                 chatId,
                 prompts.addParameters.city,
-                0,
-                { parse_mode: "HTML" }
+                0
             );
         }
 
@@ -176,8 +177,7 @@ export class AddParametersCommand extends Command {
             this.editTrackedMessage(
                 chatId,
                 prompts.addParameters.time,
-                0,
-                { parse_mode: "HTML" }
+                0
             );
         }
 
@@ -201,21 +201,53 @@ export class AddParametersCommand extends Command {
         this.deleteTrackedMessage(chatId, 1);
 
         this.waitingStates.delete(chatId);
+        this.waitingStates.set(chatId, WaitingStates.PORTIONS);
 
         this.lastMessages = [undefined, undefined];
 
-        this.userProvidedData.time = [wakeStr, sleepStr]
+        this.userProvidedData.time = [wakeStr, sleepStr];
 
-        this.bot.sendMessage(chatId, prompts.addParameters.end(
-            this.userProvidedData.weight,
-            this.userProvidedData.city,
-            this.userProvidedData.time,
-            this.userProvidedData.goal
-        ));
+        this.sendWithTracking(chatId, prompts.addParameters.portions, 0, this.markupCancel);
+    }
+
+    private handlePortions(chatId: number, message: TelegramBot.Message) {
+        if (typeof this.lastMessages[1] === "undefined") {
+            this.editTrackedMessage(
+                chatId,
+                prompts.addParameters.portions,
+                0
+            );
+        }
+
+        const text = message?.text?.trim() || "";
+
+        if (!isValidPortions(text)) {
+            this.bot.deleteMessage(chatId, message.message_id);
+            if (typeof this.lastMessages[1] === "undefined") {
+                this.sendWithTracking(
+                    chatId,
+                    prompts.addParameters.correctPortions,
+                    1,
+                    this.markupCancel,
+                );
+            }
+            return;
+        }
+
+        this.deleteTrackedMessage(chatId, 1);
+
+        this.waitingStates.delete(chatId);
+
+        this.lastMessages = [undefined, undefined];
+
+        this.userProvidedData.portions = parseFloat(text);
+        this.userProvidedData.waterPerServing = parseFloat((this.userProvidedData.goal / this.userProvidedData.portions).toFixed(2));
+
+        this.bot.sendMessage(chatId, prompts.addParameters.end(this.userProvidedData));
     }
 
     private sendWithTracking(chatId: number, text: string, index?: 0 | 1, options?: TelegramBot.SendMessageOptions): void {
-        this.bot.sendMessage(chatId, text, options)
+        this.bot.sendMessage(chatId, text, { parse_mode: "HTML", ...options })
             .then(sentMessage => {
                 if (typeof index === "number") {
                     this.lastMessages[index] = sentMessage.message_id;
@@ -227,7 +259,7 @@ export class AddParametersCommand extends Command {
         this.bot.editMessageText(text, {
             chat_id: chatId,
             message_id: this.lastMessages[index],
-            ...options
+            parse_mode: "HTML", ...options
         });
     }
 
