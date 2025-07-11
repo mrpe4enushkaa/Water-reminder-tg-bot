@@ -80,6 +80,7 @@ export class AddParametersCommand extends Command {
                 if (typeof this.lastMessages[1] === "number") {
                     this.deleteTrackedMessage(chatId, 1);
                 }
+                this.lastMessages = [undefined, undefined];  
             }
         });
     }

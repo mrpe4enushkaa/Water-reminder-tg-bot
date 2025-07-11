@@ -6,3 +6,7 @@ export const isValidCity = (text: string) =>
 
 export const isValidTime = (text: string) =>
     /^([01]\d|2[0-3]):[0-5]\d\s*-\s*([01]\d|2[0-3]):[0-5]\d$/.test(text.trim());
+
+
+export const isValidVolume = (text: string) =>
+    /^(\d+)(\s?мл)?$/i.test(text.trim()) && parseFloat(text) > 0;
