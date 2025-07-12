@@ -5,11 +5,9 @@ import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { prompts } from "../utils/prompts";
-import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime, isNotification } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
-    // private waitingStates = new Map<number, WaitingStates>;
-    // private lastMessages: MessagesIdsTuple = [undefined, undefined];
     private userProvidedData: UserProvidedData = {
         weight: 0,
         city: "",
@@ -31,6 +29,8 @@ export class AddParametersCommand extends Command {
         this.bot.onText(/^\/add_parameters$/, (message): void => {
             const chatId = message.chat.id;
 
+            if (isNotification(chatId, this.waitingStates)) return;
+
             this.waitingStates.set(chatId, WaitingStates.WEIGHT);
             this.sendWithTracking(
                 chatId,
@@ -42,6 +42,8 @@ export class AddParametersCommand extends Command {
 
         this.bot.on("message", (message): void => {
             const chatId = message.chat.id;
+            
+            if (isNotification(chatId, this.waitingStates)) return;
 
             if (message.text?.startsWith("/")) {
                 this.waitingStates.delete(chatId);
@@ -80,7 +82,7 @@ export class AddParametersCommand extends Command {
                 if (typeof this.lastMessages[1] === "number") {
                     this.deleteTrackedMessage(chatId, 1);
                 }
-                this.lastMessages = [undefined, undefined];  
+                this.lastMessages = [undefined, undefined];
             }
         });
     }
