@@ -1,6 +1,6 @@
 export type UserProvidedData = {
-    weight: number ,
-    city: string,
-    time: [string, string],
-    goal: number
+    weight: number | undefined,
+    city: string | undefined,
+    time: [string, string] | [undefined, undefined],
+    goal: number | undefined
 }

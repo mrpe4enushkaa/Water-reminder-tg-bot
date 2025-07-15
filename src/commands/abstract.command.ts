@@ -6,7 +6,8 @@ export abstract class Command {
     constructor(
         protected bot: TelegramBot,
         protected waitingStates: Map<number, WaitingStates>,
-        protected lastMessages: Map<number, MessagesIdsTuple>
+        private lastMessages: Map<number, MessagesIdsTuple>,
+        protected notificationQueue: Set<number>
     ) { }
 
     abstract handle(): void;

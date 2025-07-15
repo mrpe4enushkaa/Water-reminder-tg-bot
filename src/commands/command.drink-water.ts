@@ -1,13 +1,16 @@
-import TelegramBot, { Message } from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 import { prompts } from "../utils/prompts";
 import { drinkVolumeOptions } from "../utils/drink-volume-options";
 import { WaitingStates } from "../models/waiting-states.type";
 import { CallbackData } from "../models/callback-data.enum";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
-import { isNotification, isValidVolume } from "../utils/validators";
+import { isValidVolume } from "../utils/validators";
 
-export class NotificationCommand extends Command {
+export class DrinkWaterCommand extends Command {
+    private messageVolume = (chatId: number, volume: number): Promise<TelegramBot.Message> =>
+        this.bot.sendMessage(chatId, prompts.notification.add(volume));
+
     private markupSnooze: TelegramBot.SendMessageOptions = {
         reply_markup: {
             inline_keyboard: [
@@ -20,37 +23,34 @@ export class NotificationCommand extends Command {
         .then(lastMessage => {
             const trackedMessages = this.getLastMessages(chatId);
             trackedMessages[1] = lastMessage.message_id;
+            this.setLastMessages(chatId, trackedMessages);
         });
 
-    private messageVolume = (chatId: number, volume: number): Promise<Message> => this.bot.sendMessage(chatId, prompts.notification.add(volume));
-
-    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: Map<number, MessagesIdsTuple>) {
-        super(bot, waitingStates, lastMessages);
+    constructor(
+        bot: TelegramBot,
+        waitingStates: Map<number, WaitingStates>,
+        lastMessages: Map<number, MessagesIdsTuple>,
+        notificationQueue: Set<number>
+    ) {
+        super(bot, waitingStates, lastMessages, notificationQueue);
     }
 
-    handle(): void {
-        this.bot.onText(/^\/notification$/, (message): void => {
+    public handle(): void {
+        this.bot.onText(/^\/drink$/, (message): void => {
             const chatId = message.chat.id;
-
-            if (this.waitingStates.get(chatId) === WaitingStates.DRANK) {
+            if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
+                // if (this.notificationState.has(chatId)) {
                 this.bot.deleteMessage(chatId, message.message_id);
                 return;
             }
 
             const trackedMessages = this.getLastMessages(chatId);
 
-            this.waitingStates.set(chatId, WaitingStates.DRANK);
+            // this.notificationQueue.add(chatId);
+            this.waitingStates.set(chatId, WaitingStates.DRINK);
 
-            this.bot.sendMessage(chatId, prompts.notification.timeTo, {
-                parse_mode: "HTML",
+            this.startMessage(chatId, trackedMessages, prompts.notification.timeTo, {
                 ...drinkVolumeOptions
-            }).then(lastMessage => {
-                trackedMessages[0] = lastMessage.message_id;
-                this.bot.sendMessage(chatId, prompts.notification.snooze, { ...this.markupSnooze })
-                    .then(lastMessage => {
-                        trackedMessages[1] = lastMessage.message_id;
-                        this.setLastMessages(chatId, trackedMessages);
-                    });
             });
         });
 
@@ -58,11 +58,10 @@ export class NotificationCommand extends Command {
             const chatId = message.chat.id;
             const text = message.text || "";
 
-            if (isNotification(chatId, this.waitingStates)) {
+            if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
                 if (text === prompts.notification.keyboardChoice) {
                     const trackedMessages = this.getLastMessages(chatId);
 
-                    this.waitingStates.delete(chatId);
                     this.waitingStates.set(chatId, WaitingStates.CHOICE);
 
                     if (typeof trackedMessages[1] !== "undefined") {
@@ -74,54 +73,33 @@ export class NotificationCommand extends Command {
                         reply_markup: {
                             remove_keyboard: true
                         }
-                    })
-                        .then(lastMessage => {
-                            trackedMessages[0] = lastMessage.message_id;
-                            this.messageSnooze(chatId);
-                            this.setLastMessages(chatId, trackedMessages);
-                        });
+                    }).then(lastMessage => {
+                        trackedMessages[0] = lastMessage.message_id;
+                        this.messageSnooze(chatId);
+                    });
                 }
 
                 switch (this.waitingStates.get(chatId)) {
-                    case WaitingStates.DRANK:
-                        return this.keyboardChoise(chatId, message);
+                    case WaitingStates.DRINK:
+                        return this.keyboardChoiseWater(chatId, message);
                     case WaitingStates.CHOICE:
-                        return this.userChoise(chatId, message);
-                }
-            }
-        });
-
-        this.bot.on("callback_query", (query): void => {
-            const chatId = query.message?.chat.id;
-            const data = query?.data;
-
-            if (
-                typeof chatId !== "undefined" &&
-                typeof data === "string" &&
-                this.waitingStates.has(chatId)
-            ) {
-                if (data === CallbackData.SNOOZE) {
-                    const trackedMessages = this.getLastMessages(chatId);
-
-                    if (typeof trackedMessages[1] !== "undefined") {
-                        this.bot.editMessageText(prompts.notification.clickedSnooze, {
-                            chat_id: chatId,
-                            message_id: trackedMessages[1]
-                        });
-                    }
-                    if (typeof trackedMessages[0] !== "undefined") {
-                        this.bot.deleteMessage(chatId, trackedMessages[0]);
-                    }
-
-                    this.clearLastMessages(chatId);
-
-                    this.waitingStates.delete(chatId);
+                        return this.userChoiseWater(chatId, message);
                 }
             }
         });
     }
 
-    private keyboardChoise(chatId: number, message: TelegramBot.Message): void {
+    private startMessage(chatId: number, trackedMessages: MessagesIdsTuple, text: string, options?: TelegramBot.SendMessageOptions): void {
+        this.bot.sendMessage(chatId, text, {
+            parse_mode: "HTML",
+            ...options
+        }).then(lastMessage => {
+            trackedMessages[0] = lastMessage.message_id;
+            this.messageSnooze(chatId);
+        });
+    }
+
+    private keyboardChoiseWater(chatId: number, message: TelegramBot.Message): void {
         const text = message?.text || "";
         const trackedMessages = this.getLastMessages(chatId);
 
@@ -153,7 +131,7 @@ export class NotificationCommand extends Command {
         this.clearLastMessages(chatId);
     }
 
-    private userChoise(chatId: number, message: TelegramBot.Message): void {
+    private userChoiseWater(chatId: number, message: TelegramBot.Message): void {
         const text = message.text || "";
         const trackedMessages = this.getLastMessages(chatId);
 
@@ -179,7 +157,12 @@ export class NotificationCommand extends Command {
         }
 
         this.waitingStates.delete(chatId);
+        this.notificationQueue.delete(chatId);
 
         this.clearLastMessages(chatId);
+    }
+
+    private async updateWaterGoal(): Promise<void> {
+
     }
 }

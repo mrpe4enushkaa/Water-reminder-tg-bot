@@ -5,15 +5,10 @@ import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { prompts } from "../utils/prompts";
-import { isValidWeight, isValidCity, isValidTime, isNotification } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
-    private userProvidedData: UserProvidedData = {
-        weight: 0,
-        city: "",
-        time: ["", ""],
-        goal: 0
-    }
+    private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
 
     private markupCancel: TelegramBot.SendMessageOptions = {
         reply_markup: {
@@ -21,15 +16,25 @@ export class AddParametersCommand extends Command {
         }
     }
 
-    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: Map<number, MessagesIdsTuple>) {
-        super(bot, waitingStates, lastMessages);
+    constructor(
+        bot: TelegramBot,
+        waitingStates: Map<number, WaitingStates>,
+        lastMessages: Map<number, MessagesIdsTuple>,
+        notificationQueue: Set<number>
+    ) {
+        super(bot, waitingStates, lastMessages, notificationQueue);
     }
 
     public handle(): void {
         this.bot.onText(/^\/add_parameters$/, (message): void => {
             const chatId = message.chat.id;
 
-            if (isNotification(chatId, this.waitingStates)) return;
+            this.userProvidedData.set(chatId, {
+                weight: undefined,
+                city: undefined,
+                time: [undefined, undefined],
+                goal: undefined
+            });
 
             this.waitingStates.set(chatId, WaitingStates.WEIGHT);
 
@@ -47,27 +52,6 @@ export class AddParametersCommand extends Command {
         this.bot.on("message", (message): void => {
             const chatId = message.chat.id;
 
-            if (isNotification(chatId, this.waitingStates)) return;
-
-            if (message.text?.startsWith("/")) {
-                const currentTuple = this.lastMessages.get(chatId);
-
-                if (typeof currentTuple?.[0] !== "undefined") {
-                    this.bot.editMessageText(prompts.cancel, {
-                        chat_id: chatId,
-                        message_id: currentTuple?.[0],
-                        parse_mode: "HTML"
-                    }).catch(() => { });
-                }
-                if (typeof currentTuple?.[1] !== "undefined") {
-                    this.bot.deleteMessage(chatId, currentTuple?.[1])
-                }
-
-                this.waitingStates.delete(chatId);
-                this.lastMessages.delete(chatId);
-                return;
-            };
-
             switch (this.waitingStates.get(chatId)) {
                 case WaitingStates.WEIGHT:
                     return this.handleWeight(chatId, message);
@@ -75,29 +59,6 @@ export class AddParametersCommand extends Command {
                     return this.handleCity(chatId, message);
                 case WaitingStates.TIME:
                     return this.handleTime(chatId, message);
-            }
-        });
-
-        this.bot.on("callback_query", (query): void => {
-            const chatId = query.message?.chat.id;
-            const data = query?.data;
-
-            if (data === CallbackData.CANCEL_ADD && typeof chatId !== "undefined") {
-                const trackedMessages = this.getLastMessages(chatId);
-
-                if (typeof trackedMessages[0] !== "undefined") {
-                    this.bot.editMessageText(prompts.cancel, {
-                        chat_id: chatId,
-                        message_id: trackedMessages[0],
-                        parse_mode: "HTML"
-                    });
-                }
-                if (typeof trackedMessages[1] !== "undefined") {
-                    this.bot.deleteMessage(chatId, trackedMessages[1]);
-                }
-
-                this.waitingStates.delete(chatId);
-                this.lastMessages.delete(chatId);
             }
         });
     }
@@ -134,14 +95,18 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, trackedMessages[1]);
         }
 
-        this.waitingStates.delete(chatId);
         this.waitingStates.set(chatId, WaitingStates.CITY);
 
         this.clearLastMessages(chatId);
         trackedMessages = this.getLastMessages(chatId);
 
-        this.userProvidedData.goal = parseFloat((weight * 0.035).toFixed(2));
-        this.userProvidedData.weight = weight;
+        const userProvidedData = this.userProvidedData.get(chatId);
+        this.userProvidedData.set(chatId, {
+            weight: weight,
+            city: userProvidedData?.city,
+            time: userProvidedData?.time ?? [undefined, undefined],
+            goal: parseFloat((weight * 0.035).toFixed(2)),
+        });
 
         this.bot.sendMessage(chatId, prompts.addParameters.city, {
             ...this.markupCancel,
@@ -183,13 +148,19 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, trackedMessages[1]);
         }
 
-        this.waitingStates.delete(chatId);
         this.waitingStates.set(chatId, WaitingStates.TIME);
 
         this.clearLastMessages(chatId);
         trackedMessages = this.getLastMessages(chatId);
 
-        this.userProvidedData.city = text;
+        const userProvidedData = this.userProvidedData.get(chatId);
+
+        this.userProvidedData.set(chatId, {
+            weight: userProvidedData?.weight,
+            city: text,
+            time: userProvidedData?.time ?? [undefined, undefined],
+            goal: userProvidedData?.goal
+        });
 
         this.bot.sendMessage(chatId, prompts.addParameters.time, {
             ...this.markupCancel,
@@ -237,9 +208,24 @@ export class AddParametersCommand extends Command {
 
         this.clearLastMessages(chatId);
 
-        this.userProvidedData.time = [wakeStr, sleepStr];
+        const userProvidedData = this.userProvidedData.get(chatId);
 
-        this.bot.sendMessage(chatId, prompts.addParameters.end(this.userProvidedData));
+        this.userProvidedData.set(chatId, {
+            weight: userProvidedData?.weight,
+            city: userProvidedData?.city,
+            time: [wakeStr, sleepStr],
+            goal: userProvidedData?.goal
+        });
+
+        const userData = this.userProvidedData.get(chatId);
+
+        if (typeof userData !== "undefined") {
+            this.bot.sendMessage(chatId, prompts.addParameters.end(userData));
+        } else {
+            this.bot.sendMessage(chatId, prompts.error("/add_parameters"), {
+                parse_mode: "HTML"
+            });
+        }
     }
 
     // private sendWithTracking(chatId: number, text: string, index?: 0 | 1, options?: TelegramBot.SendMessageOptions): void {

@@ -3,17 +3,19 @@ import { ConfigService } from "./config/config.service";
 import { Command } from "./commands/abstract.command";
 import { StartCommand } from "./commands/command.start";
 import { AddParametersCommand } from "./commands/command.add-parameters";
-import { NotificationCommand } from "./commands/command.notification";
+import { DrinkWaterCommand } from "./commands/command.drink-water";
 import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
+import { OnMessage } from "./commands/on-message.command";
+import { CallbackQueryCommand } from "./commands/callback-query.command";
 
 class Bot {
     private bot: TelegramBot;
     private commands: Command[] = [];
 
     private waitingStates: Map<number, WaitingStates> = new Map<number, WaitingStates>;
-    // private lastMessages: MessagesIdsTuple = [undefined, undefined];
     private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
+    private notificationQueue: Set<number> = new Set();
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -22,7 +24,8 @@ class Bot {
     private setCommands(): void {
         this.bot.setMyCommands([
             { command: "/start", description: "Старт бота" },
-            { command: "/add_parameters", description: "Ввести параметры" }
+            { command: "/add_parameters", description: "Ввести параметры" },
+            { command: "/drink", description: "Выпил(а) воду" }
         ], {
             language_code: "ru"
         });
@@ -30,9 +33,11 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new StartCommand(this.bot, this.waitingStates, this.lastMessages),
-            new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages),
-            new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
+            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
         ];
 
         for (const command of this.commands) {

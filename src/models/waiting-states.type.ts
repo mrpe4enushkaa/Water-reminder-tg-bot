@@ -3,7 +3,7 @@ export enum WaitingStates {
     CITY = "city",
     TIME = "time",
     
-    DRANK = "drank",
+    DRINK = "drank",
     CHOICE = "choice",
     SNOOZE = "snooze",
 }

@@ -52,5 +52,7 @@ export const prompts = {
 
     markupCancel: `❌ Отменить`,
 
-    cancel: `❌ Действие отменено.`
+    cancel: `❌ Действие отменено.`,
+    error: (command: string): string =>
+        `⚠️ <b>Упс! Что-то пошло не так</b>\nПопробуйте ещё раз или введите ${command}, чтобы начать заново.`
 }
