@@ -16,8 +16,11 @@ export class NotificationCommand extends Command {
         }
     }
 
-    private messageSnooze = (chatId: number): Promise<number> => this.bot.sendMessage(chatId, prompts.notification.snooze, { ...this.markupSnooze })
-        .then(lastMessage => this.lastMessages[1] = lastMessage.message_id);
+    private messageSnooze = (chatId: number): Promise<number | void> => this.bot.sendMessage(chatId, prompts.notification.snooze, { ...this.markupSnooze })
+        .then(lastMessage => {
+            const currentTuple = this.getLastMessages(chatId);
+            currentTuple[1] = lastMessage.message_id;
+        });
 
     private messageVolume = (chatId: number, volume: number): Promise<Message> => this.bot.sendMessage(chatId, prompts.notification.add(volume));
 
@@ -34,15 +37,20 @@ export class NotificationCommand extends Command {
                 return;
             }
 
+            const currentTuple = this.getLastMessages(chatId);
+
             this.waitingStates.set(chatId, WaitingStates.DRANK);
 
             this.bot.sendMessage(chatId, prompts.notification.timeTo, {
                 parse_mode: "HTML",
                 ...drinkVolumeOptions
             }).then(lastMessage => {
-                this.lastMessages[0] = lastMessage.message_id;
+                currentTuple[0] = lastMessage.message_id;
                 this.bot.sendMessage(chatId, prompts.notification.snooze, { ...this.markupSnooze })
-                    .then(lastMessage => this.lastMessages[1] = lastMessage.message_id);
+                    .then(lastMessage => {
+                        currentTuple[1] = lastMessage.message_id;
+                        this.setLastMessages(chatId, currentTuple);
+                    });
             });
         });
 
@@ -52,22 +60,25 @@ export class NotificationCommand extends Command {
 
             if (isNotification(chatId, this.waitingStates)) {
                 if (text === prompts.notification.keyboardChoice) {
+                    const currentTuple = this.getLastMessages(chatId);
+
                     this.waitingStates.delete(chatId);
                     this.waitingStates.set(chatId, WaitingStates.CHOICE);
 
-                    if (typeof this.lastMessages[1] !== "undefined") {
-                        this.bot.deleteMessage(chatId, this.lastMessages[1]);
-                        this.lastMessages = [undefined, undefined];
+                    if (typeof currentTuple?.[1] !== "undefined") {
+                        this.bot.deleteMessage(chatId, currentTuple[1]);
+                        this.clearLastMessages(chatId);
                     }
 
-                    this.bot.sendMessage(chatId, prompts.notification.choice , {
+                    this.bot.sendMessage(chatId, prompts.notification.choice, {
                         reply_markup: {
                             remove_keyboard: true
                         }
                     })
                         .then(lastMessage => {
-                            this.lastMessages[0] = lastMessage.message_id;
+                            currentTuple[0] = lastMessage.message_id;
                             this.messageSnooze(chatId);
+                            this.setLastMessages(chatId, currentTuple);
                         });
                 }
 
@@ -90,16 +101,20 @@ export class NotificationCommand extends Command {
                 this.waitingStates.has(chatId)
             ) {
                 if (data === CallbackData.SNOOZE) {
-                    if (typeof this.lastMessages[1] !== "undefined") {
+                    const currentTuple = this.getLastMessages(chatId);
+
+                    if (typeof currentTuple?.[1] !== "undefined") {
                         this.bot.editMessageText(prompts.notification.clickedSnooze, {
                             chat_id: chatId,
-                            message_id: this.lastMessages[1]
+                            message_id: currentTuple?.[1]
                         });
                     }
-                    if (typeof this.lastMessages[0] !== "undefined") {
-                        this.bot.deleteMessage(chatId, this.lastMessages[0]);
+                    if (typeof currentTuple?.[0] !== "undefined") {
+                        this.bot.deleteMessage(chatId, currentTuple?.[0]);
                     }
-                    this.lastMessages = [undefined, undefined]; // fiil(undefined);
+
+                    this.clearLastMessages(chatId);
+
                     this.waitingStates.delete(chatId);
                 }
             }
@@ -108,42 +123,47 @@ export class NotificationCommand extends Command {
 
     private keyboardChoise(chatId: number, message: TelegramBot.Message): void {
         const text = message?.text || "";
+        const currentTuple = this.getLastMessages(chatId);
 
         if (!isValidVolume(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
 
-            this.bot.editMessageText(`${prompts.notification.error}
+            if (typeof currentTuple?.[1] !== "undefined") {
+                this.bot.editMessageText(`${prompts.notification.error}
                 \n${prompts.notification.snooze}`, {
-                chat_id: chatId,
-                message_id: this.lastMessages[1],
-                reply_markup: this.markupSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup
-            }).catch(() => { });
+                    chat_id: chatId,
+                    message_id: currentTuple?.[1],
+                    reply_markup: this.markupSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup
+                }).catch(() => { });
+            }
 
             return;
         }
 
         const volume = parseFloat(text);
 
-        if (typeof this.lastMessages[1] !== "undefined") {
-            this.bot.deleteMessage(chatId, this.lastMessages[1]);
+        if (typeof currentTuple?.[1] !== "undefined") {
+            this.bot.deleteMessage(chatId, currentTuple?.[1]);
         }
 
         this.messageVolume(chatId, volume);
 
         this.waitingStates.delete(chatId);
-        this.lastMessages = [undefined, undefined];
+
+        this.clearLastMessages(chatId);
     }
 
     private userChoise(chatId: number, message: TelegramBot.Message): void {
         const text = message.text || "";
+        const currentTuple = this.getLastMessages(chatId);
 
         if (!isValidVolume(text)) {
-            if (typeof this.lastMessages[1] !== "undefined") {
+            if (typeof currentTuple?.[1] !== "undefined") {
                 this.bot.deleteMessage(chatId, message.message_id);
                 this.bot.editMessageText(`${prompts.notification.error}
                 \n${prompts.notification.snooze}`, {
                     chat_id: chatId,
-                    message_id: this.lastMessages[1],
+                    message_id: currentTuple?.[1],
                     reply_markup: this.markupSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup
                 }).catch(() => { });
             }
@@ -153,11 +173,13 @@ export class NotificationCommand extends Command {
         const volume = parseFloat(text);
 
         this.messageVolume(chatId, volume);
-        if (typeof this.lastMessages[1] !== "undefined") {
-            this.bot.deleteMessage(chatId, this.lastMessages[1]);
+
+        if (typeof currentTuple?.[1] !== "undefined") {
+            this.bot.deleteMessage(chatId, currentTuple?.[1]);
         }
 
         this.waitingStates.delete(chatId);
-        this.lastMessages = [undefined, undefined];
+
+        this.clearLastMessages(chatId);
     }
 }

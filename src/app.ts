@@ -32,7 +32,7 @@ class Bot {
         this.commands = [
             new StartCommand(this.bot, this.waitingStates, this.lastMessages),
             new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages),
-            // new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
+            new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
         ];
 
         for (const command of this.commands) {

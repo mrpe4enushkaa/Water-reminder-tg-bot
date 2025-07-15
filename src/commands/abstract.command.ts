@@ -10,4 +10,16 @@ export abstract class Command {
     ) { }
 
     abstract handle(): void;
+
+    protected getLastMessages(chatId: number): MessagesIdsTuple {
+        return this.lastMessages.get(chatId) || [undefined, undefined];
+    }
+
+    protected setLastMessages(chatId: number, tuple: MessagesIdsTuple): void {
+        this.lastMessages.set(chatId, tuple);
+    }
+
+    protected clearLastMessages(chatId: number): void {
+        this.lastMessages.set(chatId, [undefined, undefined]);
+    }
 }
