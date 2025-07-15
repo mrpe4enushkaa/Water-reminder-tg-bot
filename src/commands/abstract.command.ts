@@ -15,8 +15,8 @@ export abstract class Command {
         return this.lastMessages.get(chatId) || [undefined, undefined];
     }
 
-    protected setLastMessages(chatId: number, tuple: MessagesIdsTuple): void {
-        this.lastMessages.set(chatId, tuple);
+    protected setLastMessages(chatId: number, lastMessagesTuple: MessagesIdsTuple): void {
+        this.lastMessages.set(chatId, lastMessagesTuple);
     }
 
     protected clearLastMessages(chatId: number): void {
