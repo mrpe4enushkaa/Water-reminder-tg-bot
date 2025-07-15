@@ -2,8 +2,8 @@ import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
-import { prompts } from "../utils/prompts";
 import { isNotificationQueue } from "../utils/validators";
+import { prompts } from "../utils/prompts";
 
 export class OnMessage extends Command {
     constructor(

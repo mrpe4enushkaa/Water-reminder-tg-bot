@@ -4,8 +4,8 @@ import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
+import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
 import { prompts } from "../utils/prompts";
-import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "../utils/validators";
 
 export class AddParametersCommand extends Command {
     private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;

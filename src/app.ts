@@ -1,13 +1,13 @@
 import TelegramBot from "node-telegram-bot-api";
 import { ConfigService } from "./config/config.service";
 import { Command } from "./commands/abstract.command";
+import { OnMessage } from "./commands/command.on-message";
+import { CallbackQueryCommand } from "./commands/command.callback-query";
 import { StartCommand } from "./commands/command.start";
 import { AddParametersCommand } from "./commands/command.add-parameters";
 import { DrinkWaterCommand } from "./commands/command.drink-water";
 import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
-import { OnMessage } from "./commands/on-message.command";
-import { CallbackQueryCommand } from "./commands/callback-query.command";
 
 class Bot {
     private bot: TelegramBot;
