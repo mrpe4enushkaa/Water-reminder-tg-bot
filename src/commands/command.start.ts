@@ -6,7 +6,7 @@ import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isNotification } from "../utils/validators";
 
 export class StartCommand extends Command {
-    constructor(bot: TelegramBot, waitingStates: Map<number, WaitingStates>, lastMessage: MessagesIdsTuple) {
+    constructor(bot: TelegramBot, waitingStates: Map<number, WaitingStates>, lastMessage: Map<number, MessagesIdsTuple>) {
         super(bot, waitingStates, lastMessage);
     }
 

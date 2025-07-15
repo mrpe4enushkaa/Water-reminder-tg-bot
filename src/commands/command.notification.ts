@@ -21,7 +21,7 @@ export class NotificationCommand extends Command {
 
     private messageVolume = (chatId: number, volume: number): Promise<Message> => this.bot.sendMessage(chatId, prompts.notification.add(volume));
 
-    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: MessagesIdsTuple) {
+    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: Map<number, MessagesIdsTuple>) {
         super(bot, waitingStates, lastMessages);
     }
 

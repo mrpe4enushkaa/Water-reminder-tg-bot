@@ -11,8 +11,9 @@ class Bot {
     private bot: TelegramBot;
     private commands: Command[] = [];
 
-    private waitingStates = new Map<number, WaitingStates>;
-    private lastMessages: MessagesIdsTuple = [undefined, undefined];
+    private waitingStates: Map<number, WaitingStates> = new Map<number, WaitingStates>;
+    // private lastMessages: MessagesIdsTuple = [undefined, undefined];
+    private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -29,9 +30,9 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new StartCommand(this.bot),
+            new StartCommand(this.bot, this.waitingStates, this.lastMessages),
             new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages),
-            new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
+            // new NotificationCommand(this.bot, this.waitingStates, this.lastMessages)
         ];
 
         for (const command of this.commands) {

@@ -21,7 +21,7 @@ export class AddParametersCommand extends Command {
         }
     }
 
-    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: MessagesIdsTuple) {
+    constructor(bot: TelegramBot, waitingStates = new Map<number, WaitingStates>, lastMessages: Map<number, MessagesIdsTuple>) {
         super(bot, waitingStates, lastMessages);
     }
 
@@ -32,31 +32,38 @@ export class AddParametersCommand extends Command {
             if (isNotification(chatId, this.waitingStates)) return;
 
             this.waitingStates.set(chatId, WaitingStates.WEIGHT);
-            this.sendWithTracking(
-                chatId,
-                prompts.addParameters.weight,
-                0,
-                { ...this.markupCancel },
-            );
+
+            this.bot.sendMessage(chatId, prompts.addParameters.weight, {
+                ...this.markupCancel,
+                parse_mode: "HTML"
+            }).then(lastMessage => {
+                const currentTuple = this.lastMessages.get(chatId) || [undefined, undefined];
+                currentTuple[0] = lastMessage.message_id;
+                this.lastMessages.set(chatId, currentTuple);
+            });
         });
 
         this.bot.on("message", (message): void => {
             const chatId = message.chat.id;
-            
+
             if (isNotification(chatId, this.waitingStates)) return;
 
             if (message.text?.startsWith("/")) {
-                this.waitingStates.delete(chatId);
-                if (typeof this.lastMessages[0] !== "undefined") {
+                const currentTuple = this.lastMessages.get(chatId);
+
+                if (typeof currentTuple?.[0] !== "undefined") {
                     this.bot.editMessageText(prompts.cancel, {
                         chat_id: chatId,
-                        message_id: this.lastMessages[0]
+                        message_id: currentTuple?.[0],
+                        parse_mode: "HTML"
                     }).catch(() => { });
                 }
-                if (typeof this.lastMessages[1] !== "undefined") {
-                    this.deleteTrackedMessage(chatId, 1);
+                if (typeof currentTuple?.[1] !== "undefined") {
+                    this.bot.deleteMessage(chatId, currentTuple?.[1])
                 }
-                this.lastMessages = [undefined, undefined];
+
+                this.waitingStates.delete(chatId);
+                this.lastMessages.delete(chatId);
                 return;
             };
 
@@ -75,25 +82,34 @@ export class AddParametersCommand extends Command {
             const data = query?.data;
 
             if (data === CallbackData.CANCEL_ADD && typeof chatId !== "undefined") {
+                const currentTuple = this.lastMessages.get(chatId) || [undefined, undefined];
+
+                if (typeof currentTuple?.[0] !== "undefined") {
+                    this.bot.editMessageText(prompts.cancel, {
+                        chat_id: chatId,
+                        message_id: currentTuple?.[0],
+                        parse_mode: "HTML"
+                    });
+                }
+                if (typeof currentTuple?.[1] !== "undefined") {
+                    this.bot.deleteMessage(chatId, currentTuple?.[1]);
+                }
+
                 this.waitingStates.delete(chatId);
-                if (typeof this.lastMessages[0] === "number") {
-                    this.editTrackedMessage(chatId, prompts.cancel, 0);
-                }
-                if (typeof this.lastMessages[1] === "number") {
-                    this.deleteTrackedMessage(chatId, 1);
-                }
-                this.lastMessages = [undefined, undefined];
+                this.lastMessages.delete(chatId);
             }
         });
     }
 
     private handleWeight(chatId: number, message: TelegramBot.Message): void {
-        if (typeof this.lastMessages[1] === "undefined") {
-            this.editTrackedMessage(
-                chatId,
-                prompts.addParameters.weight,
-                0
-            );
+        const currentTuple = this.lastMessages.get(chatId) || [undefined, undefined];
+
+        if (typeof currentTuple?.[0] !== "undefined" && typeof currentTuple?.[1] === "undefined") {
+            this.bot.editMessageText(prompts.addParameters.weight, {
+                chat_id: chatId,
+                message_id: currentTuple?.[0],
+                parse_mode: "HTML"
+            });
         }
 
         const text = message?.text?.trim() || "";
@@ -101,136 +117,156 @@ export class AddParametersCommand extends Command {
 
         if (!isValidWeight(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
-            if (typeof this.lastMessages[1] === "undefined") {
-                this.sendWithTracking(
-                    chatId,
-                    prompts.addParameters.correctWeight,
-                    1,
-                    this.markupCancel,
-                );
+            if (typeof currentTuple?.[1] === "undefined") {
+                this.bot.sendMessage(chatId, prompts.addParameters.correctWeight, {
+                    ...this.markupCancel,
+                    parse_mode: "HTML"
+                }).then(lastMessage => {
+                    currentTuple[1] = lastMessage.message_id;
+                    this.lastMessages.set(chatId, currentTuple);
+                });
             }
             return;
         }
 
-        this.deleteTrackedMessage(chatId, 1);
+        if (typeof currentTuple?.[1] !== "undefined") {
+            this.bot.deleteMessage(chatId, currentTuple?.[1]);
+        }
 
         this.waitingStates.delete(chatId);
         this.waitingStates.set(chatId, WaitingStates.CITY);
 
-        this.lastMessages = [undefined, undefined];
+        currentTuple[0] = undefined;
+        currentTuple[1] = undefined;
 
         this.userProvidedData.goal = parseFloat((weight * 0.035).toFixed(2));
         this.userProvidedData.weight = weight;
 
-        this.sendWithTracking(
-            chatId,
-            prompts.addParameters.city,
-            0,
-            { ...this.markupCancel }
-        );
+        this.bot.sendMessage(chatId, prompts.addParameters.city, {
+            ...this.markupCancel,
+            parse_mode: "HTML"
+        }).then(lastMessage => {
+            currentTuple[0] = lastMessage.message_id;
+            this.lastMessages.set(chatId, currentTuple);
+        });;
     }
 
     private handleCity(chatId: number, message: TelegramBot.Message): void {
-        if (typeof this.lastMessages[1] === "undefined") {
-            this.editTrackedMessage(
-                chatId,
-                prompts.addParameters.city,
-                0
-            );
+        const currentTuple = this.lastMessages.get(chatId) || [undefined, undefined];
+
+        if (typeof currentTuple?.[0] !== "undefined" && typeof currentTuple?.[1] === "undefined") {
+            this.bot.editMessageText(prompts.addParameters.city, {
+                chat_id: chatId,
+                message_id: currentTuple?.[0],
+                parse_mode: "HTML"
+            });
         }
 
         const text = message?.text || "";
 
         if (!isValidCity(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
-            if (typeof this.lastMessages[1] === "undefined") {
-                this.sendWithTracking(
-                    chatId,
-                    prompts.addParameters.correctCity,
-                    1,
-                    this.markupCancel,
-                );
+            if (typeof currentTuple?.[1] === "undefined") {
+                this.bot.sendMessage(chatId, prompts.addParameters.correctCity, {
+                    ...this.markupCancel,
+                    parse_mode: "HTML"
+                }).then(lastMessage => {
+                    currentTuple[1] = lastMessage.message_id;
+                    this.lastMessages.set(chatId, currentTuple);
+                });
             }
             return;
         }
 
-        this.deleteTrackedMessage(chatId, 1);
+        if (typeof currentTuple?.[1] !== "undefined") {
+            this.bot.deleteMessage(chatId, currentTuple?.[1]);
+        }
 
         this.waitingStates.delete(chatId);
         this.waitingStates.set(chatId, WaitingStates.TIME);
 
-        this.lastMessages = [undefined, undefined];
+        currentTuple[0] = undefined;
+        currentTuple[1] = undefined;
 
         this.userProvidedData.city = text;
 
-        this.sendWithTracking(
-            chatId,
-            prompts.addParameters.time,
-            0,
-            { ...this.markupCancel }
-        );
+        this.bot.sendMessage(chatId, prompts.addParameters.time, {
+            ...this.markupCancel,
+            parse_mode: "HTML"
+        }).then(lastMessage => {
+            currentTuple[0] = lastMessage.message_id;
+            this.lastMessages.set(chatId, currentTuple);
+        });
     }
 
     private handleTime(chatId: number, message: TelegramBot.Message): void {
-        if (typeof this.lastMessages[1] === "undefined") {
-            this.editTrackedMessage(
-                chatId,
-                prompts.addParameters.time,
-                0
-            );
+        const currentTuple = this.lastMessages.get(chatId) || [undefined, undefined];
+
+        if (typeof currentTuple?.[0] !== "undefined" && typeof currentTuple?.[1] === "undefined") {
+            this.bot.editMessageText(prompts.addParameters.time, {
+                chat_id: chatId,
+                message_id: currentTuple?.[0],
+                parse_mode: "HTML"
+            });
         }
 
         const text = message?.text?.trim() || "";
 
         if (!isValidTime(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
-            if (typeof this.lastMessages[1] === "undefined") {
-                this.sendWithTracking(
-                    chatId,
-                    prompts.addParameters.correctTime,
-                    1,
-                    this.markupCancel,
-                );
+            if (typeof currentTuple?.[1] === "undefined") {
+                this.bot.sendMessage(chatId, prompts.addParameters.correctTime, {
+                    ...this.markupCancel,
+                    parse_mode: "HTML"
+                }).then(lastMessage => {
+                    currentTuple[1] = lastMessage.message_id;
+                    this.lastMessages.set(chatId, currentTuple);
+                });
             }
             return;
         }
 
         const [wakeStr, sleepStr] = text.split("-").map(time => time.trim());
 
-        this.deleteTrackedMessage(chatId, 1);
+        if (typeof currentTuple?.[1] !== "undefined") {
+            this.bot.deleteMessage(chatId, currentTuple?.[1]);
+        }
 
         this.waitingStates.delete(chatId);
 
-        this.lastMessages = [undefined, undefined];
+        currentTuple[0] = undefined;
+        currentTuple[1] = undefined;
+
+        this.lastMessages.set(chatId, currentTuple);
 
         this.userProvidedData.time = [wakeStr, sleepStr];
 
         this.bot.sendMessage(chatId, prompts.addParameters.end(this.userProvidedData));
     }
 
-    private sendWithTracking(chatId: number, text: string, index?: 0 | 1, options?: TelegramBot.SendMessageOptions): void {
-        this.bot.sendMessage(chatId, text, { parse_mode: "HTML", ...options })
-            .then(sentMessage => {
-                if (typeof index === "number") {
-                    this.lastMessages[index] = sentMessage.message_id;
-                }
-            });
-    }
+    // private sendWithTracking(chatId: number, text: string, index?: 0 | 1, options?: TelegramBot.SendMessageOptions): void {
+    //     this.bot.sendMessage(chatId, text, { parse_mode: "HTML", ...options })
+    //         .then(sentMessage => {
+    //             if (typeof index === "number") {
+    //                 this.lastMessages[index] = sentMessage.message_id;
+    //             }
+    //         });
+    // }
 
-    private editTrackedMessage(chatId: number, text: string, index: 0 | 1, options?: TelegramBot.EditMessageTextOptions): void {
-        this.bot.editMessageText(text, {
-            chat_id: chatId,
-            message_id: this.lastMessages[index],
-            parse_mode: "HTML", ...options
-        });
-    }
+    // private editTrackedMessage(chatId: number, text: string, index: 0 | 1, options?: TelegramBot.EditMessageTextOptions): void {
+    //     this.bot.editMessageText(text, {
+    //         chat_id: chatId,
+    //         message_id: this.lastMessages[index],
+    //         parse_mode: "HTML", ...options
+    //     });
+    // }
 
-    private deleteTrackedMessage(chatId: number, index: 0 | 1): void {
-        if (typeof this.lastMessages[index] === "number") {
-            this.bot.deleteMessage(chatId, this.lastMessages[index]);
-            this.lastMessages[index] = undefined;
-        }
-    }
+    // private deleteTrackedMessage(chatId: number, index: 0 | 1): void {
+    //     if (typeof this.lastMessages[index] === "number") {
+    //         this.bot.deleteMessage(chatId, this.lastMessages[index]);
+    //         this.lastMessages[index] = undefined;
+    //     }
+    // }
 
     private async saveParameters(data: UserProvidedData): Promise<void> {
 
