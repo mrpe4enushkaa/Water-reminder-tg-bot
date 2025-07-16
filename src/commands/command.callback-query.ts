@@ -4,6 +4,7 @@ import { prompts } from "../utils/prompts";
 import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
+import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
 
 export class CallbackQueryCommand extends Command {
     constructor(
@@ -55,6 +56,58 @@ export class CallbackQueryCommand extends Command {
                     this.clearLastMessages(chatId);
                     this.notificationQueue.delete(chatId);
                     this.waitingStates.delete(chatId);
+                }
+
+                if (data === CallbackData.CONTINUE) {
+                    const state = this.waitingStates.get(chatId);
+
+                    if (typeof state !== "undefined") {
+                        const nextState = state + 1;
+
+                        if (nextState <= 3) {
+                            const trackedMessages = this.getLastMessages(chatId);
+
+                            if (typeof trackedMessages[1] !== "undefined") {
+                                this.bot.deleteMessage(chatId, trackedMessages[1]);
+                            }
+
+                            switch (nextState) {
+                                case WaitingStates.CITY:
+                                    this.bot.editMessageText("Введите новый город", {
+                                        chat_id: chatId,
+                                        message_id: trackedMessages[0],
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                                                ...inlineKeyboardCancel.reply_markup.inline_keyboard
+                                            ]
+                                        },
+                                        parse_mode: "HTML"
+                                    }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
+
+                                    this.waitingStates.set(chatId, nextState);
+                                    this.clearLastMessages(chatId);
+                                    break;
+                                case WaitingStates.TIME:
+                                    this.bot.editMessageText("Введите новое время", {
+                                        chat_id: chatId,
+                                        message_id: trackedMessages[0],
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                                                ...inlineKeyboardCancel.reply_markup.inline_keyboard
+                                            ]
+                                        },
+                                        parse_mode: "HTML"
+                                    }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));;
+
+                                    this.waitingStates.set(chatId, nextState);
+                                    this.clearLastMessages(chatId);
+                                    break;
+                            }
+                        }
+                    }
+                    return;
                 }
             }
         });

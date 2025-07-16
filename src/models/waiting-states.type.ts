@@ -1,12 +1,8 @@
 export enum WaitingStates {
-    WEIGHT = "weight",
-    CITY = "city",
-    TIME = "time",
+    WEIGHT = 1,
+    CITY = 2,
+    TIME = 3,
     
-    DRINK = "drank",
-    CHOICE = "choice",
-
-    EDIT_WEIGHT = "edit_weight",
-    EDIT_CITY = "edit_city",
-    EDIT_TIME = "edit_time",
+    DRINK = 4,
+    CHOICE = 5,
 }
