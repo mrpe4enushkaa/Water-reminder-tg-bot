@@ -24,6 +24,7 @@ export class ParametersCommand extends Command {
         this.bot.onText(/^\/add_parameters$/, (message): void => {
             const chatId = message.chat.id;
 
+            //if (get userProvidedData from mongo or redis) return;
             this.startMessage(chatId);
         });
 

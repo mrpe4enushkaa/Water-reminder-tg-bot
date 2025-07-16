@@ -83,7 +83,10 @@ export class CallbackQueryCommand extends Command {
                                             ]
                                         },
                                         parse_mode: "HTML"
-                                    }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
+                                    }).then(lastMessage => {
+                                        const message = lastMessage as TelegramBot.Message;
+                                        this.setLastMessages(chatId, [message.message_id, undefined]);
+                                    });
 
                                     this.waitingStates.set(chatId, nextState);
                                     this.clearLastMessages(chatId);
@@ -99,7 +102,10 @@ export class CallbackQueryCommand extends Command {
                                             ]
                                         },
                                         parse_mode: "HTML"
-                                    }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));;
+                                    }).then(lastMessage => {
+                                        const message = lastMessage as TelegramBot.Message;
+                                        this.setLastMessages(chatId, [message.message_id, undefined]);
+                                    });
 
                                     this.waitingStates.set(chatId, nextState);
                                     this.clearLastMessages(chatId);

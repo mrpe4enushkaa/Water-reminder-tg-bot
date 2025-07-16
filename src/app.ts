@@ -27,7 +27,13 @@ class Bot {
             { command: "/start", description: "Старт бота" },
             { command: "/add_parameters", description: "Ввести параметры" },
             { command: "/edit_parameters", description: "Изменить параметры" },
-            { command: "/drink", description: "Выпил(а) воду" }
+            { command: "/info_parameters", description: "Посмотреть параметры" },
+            { command: "/drink", description: "Выпил(а) воду" },
+            { command: "/help", description: "Инструкция по командам" },
+            { command: "/stop", description: "Прекратить напоминать" },
+            { command: "/time", description: "Время до следующего уведомления" },
+            // { command: "/change_language", description: "Изменение языка бота" },
+            // { command: "/delete_parameters", description: "Удалить данные о пользователе" },
         ], {
             language_code: "ru"
         });
