@@ -7,7 +7,8 @@ export abstract class Command {
         protected bot: TelegramBot,
         protected waitingStates: Map<number, WaitingStates>,
         private lastMessages: Map<number, MessagesIdsTuple>,
-        protected notificationQueue: Set<number>
+        protected notificationQueue: Set<number>,
+        protected editUserParameters: Set<number>
     ) { }
 
     abstract handle(): void;

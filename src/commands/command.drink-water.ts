@@ -22,9 +22,10 @@ export class DrinkWaterCommand extends Command {
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
-        notificationQueue: Set<number>
+        notificationQueue: Set<number>,
+        editUserParameters: Set<number>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
     }
 
     public handle(): void {

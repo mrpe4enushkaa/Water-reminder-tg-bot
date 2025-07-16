@@ -10,9 +10,10 @@ export class OnMessage extends Command {
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
-        notificationQueue: Set<number>
+        notificationQueue: Set<number>,
+        editUserParameters: Set<number>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
     }
 
     handle(): void {
@@ -52,6 +53,7 @@ export class OnMessage extends Command {
 
                 this.waitingStates.delete(chatId);
                 this.clearLastMessages(chatId);
+                this.editUserParameters.delete(chatId);
                 return;
             };
         });

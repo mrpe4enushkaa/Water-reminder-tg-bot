@@ -5,5 +5,8 @@ export enum WaitingStates {
     
     DRINK = "drank",
     CHOICE = "choice",
-    SNOOZE = "snooze",
+
+    EDIT_WEIGHT = "edit_weight",
+    EDIT_CITY = "edit_city",
+    EDIT_TIME = "edit_time",
 }

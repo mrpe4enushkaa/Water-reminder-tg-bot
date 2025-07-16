@@ -4,8 +4,7 @@ import { Command } from "./commands/abstract.command";
 import { OnMessage } from "./commands/command.on-message";
 import { CallbackQueryCommand } from "./commands/command.callback-query";
 import { StartCommand } from "./commands/command.start";
-import { AddParametersCommand } from "./commands/command.add-parameters";
-import { EditParametersCommand } from "./commands/command.edit-parameters";
+import { ParametersCommand } from "./commands/command.parameters";
 import { DrinkWaterCommand } from "./commands/command.drink-water";
 import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
@@ -17,6 +16,7 @@ class Bot {
     private waitingStates: Map<number, WaitingStates> = new Map<number, WaitingStates>;
     private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
     private notificationQueue: Set<number> = new Set();
+    private editUserParameters: Set<number> = new Set();
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -26,6 +26,7 @@ class Bot {
         this.bot.setMyCommands([
             { command: "/start", description: "Старт бота" },
             { command: "/add_parameters", description: "Ввести параметры" },
+            { command: "/edit_parameters", description: "Изменить параметры" },
             { command: "/drink", description: "Выпил(а) воду" }
         ], {
             language_code: "ru"
@@ -34,12 +35,11 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
-            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
-            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
-            new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
-            new EditParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
-            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
+            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
+            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
+            new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
+            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
         ];
 
         for (const command of this.commands) {
