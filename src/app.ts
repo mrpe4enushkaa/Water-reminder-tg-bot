@@ -5,6 +5,7 @@ import { OnMessage } from "./commands/command.on-message";
 import { CallbackQueryCommand } from "./commands/command.callback-query";
 import { StartCommand } from "./commands/command.start";
 import { AddParametersCommand } from "./commands/command.add-parameters";
+import { EditParametersCommand } from "./commands/command.edit-parameters";
 import { DrinkWaterCommand } from "./commands/command.drink-water";
 import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
@@ -37,6 +38,7 @@ class Bot {
             new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
             new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
             new AddParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
+            new EditParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
             new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue),
         ];
 

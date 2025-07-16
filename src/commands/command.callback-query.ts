@@ -42,7 +42,7 @@ export class CallbackQueryCommand extends Command {
 
                 if (data === CallbackData.SNOOZE) {
                     if (typeof trackedMessages[1] !== "undefined") {
-                        this.bot.editMessageText(prompts.notification.clickedSnooze, {
+                        this.bot.editMessageText(prompts.drinkWater.clickedSnooze, {
                             chat_id: chatId,
                             message_id: trackedMessages[1]
                         });
@@ -52,6 +52,7 @@ export class CallbackQueryCommand extends Command {
                     }
 
                     this.clearLastMessages(chatId);
+                    this.notificationQueue.delete(chatId);
                     this.waitingStates.delete(chatId);
                 }
             }

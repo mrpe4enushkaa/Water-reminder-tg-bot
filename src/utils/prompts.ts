@@ -30,7 +30,7 @@ export const prompts = {
             \nЯ напомню тебе пить воду в течение дня! 🔔`
     },
 
-    notification: {
+    drinkWater: {
         timeTo: `💧 Пора пополнить водный баланс!`,
 
         markupSnooze: `⏰ Напомнить позже`,
@@ -43,11 +43,6 @@ export const prompts = {
         error: `❗ Пожалуйста, введите корректное значение объёма воды (в мл)`,
 
         add: (volume: number) => `✅ Отлично! Я записал, что ты выпил(а) ${volume} мл 💦`,
-    },
-
-    drank: {
-        timeTo: `💧 Так держать!`,
-        choice: `🔢 Указать свой объём`,
     },
 
     markupCancel: `❌ Отменить`,

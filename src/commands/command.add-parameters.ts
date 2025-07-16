@@ -4,17 +4,12 @@ import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { CallbackData } from "../models/callback-data.enum";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
-import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "../utils/validators";
 import { prompts } from "../utils/prompts";
+import { inlineKeyboardCancel } from "../utils/reply-markups";
 
 export class AddParametersCommand extends Command {
     private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
-
-    private markupCancel: TelegramBot.SendMessageOptions = {
-        reply_markup: {
-            inline_keyboard: [[{ text: prompts.markupCancel, callback_data: CallbackData.CANCEL_ADD }]]
-        }
-    }
 
     constructor(
         bot: TelegramBot,
@@ -29,6 +24,8 @@ export class AddParametersCommand extends Command {
         this.bot.onText(/^\/add_parameters$/, (message): void => {
             const chatId = message.chat.id;
 
+            if (isNotificationQueue(chatId, this.notificationQueue)) return;
+
             this.userProvidedData.set(chatId, {
                 weight: undefined,
                 city: undefined,
@@ -41,7 +38,7 @@ export class AddParametersCommand extends Command {
             const trackedMessages = this.getLastMessages(chatId);
 
             this.bot.sendMessage(chatId, prompts.addParameters.weight, {
-                ...this.markupCancel,
+                ...inlineKeyboardCancel,
                 parse_mode: "HTML"
             }).then(lastMessage => {
                 trackedMessages[0] = lastMessage.message_id;
@@ -81,7 +78,7 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, message.message_id);
             if (typeof trackedMessages[1] === "undefined") {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctWeight, {
-                    ...this.markupCancel,
+                    ...inlineKeyboardCancel,
                     parse_mode: "HTML"
                 }).then(lastMessage => {
                     trackedMessages[1] = lastMessage.message_id;
@@ -109,7 +106,7 @@ export class AddParametersCommand extends Command {
         });
 
         this.bot.sendMessage(chatId, prompts.addParameters.city, {
-            ...this.markupCancel,
+            ...inlineKeyboardCancel,
             parse_mode: "HTML"
         }).then(lastMessage => {
             trackedMessages[0] = lastMessage.message_id;
@@ -134,7 +131,7 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, message.message_id);
             if (typeof trackedMessages[1] === "undefined") {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctCity, {
-                    ...this.markupCancel,
+                    ...inlineKeyboardCancel,
                     parse_mode: "HTML"
                 }).then(lastMessage => {
                     trackedMessages[1] = lastMessage.message_id;
@@ -163,7 +160,7 @@ export class AddParametersCommand extends Command {
         });
 
         this.bot.sendMessage(chatId, prompts.addParameters.time, {
-            ...this.markupCancel,
+            ...inlineKeyboardCancel,
             parse_mode: "HTML"
         }).then(lastMessage => {
             trackedMessages[0] = lastMessage.message_id;
@@ -188,7 +185,7 @@ export class AddParametersCommand extends Command {
             this.bot.deleteMessage(chatId, message.message_id);
             if (typeof trackedMessages[1] === "undefined") {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctTime, {
-                    ...this.markupCancel,
+                    ...inlineKeyboardCancel,
                     parse_mode: "HTML"
                 }).then(lastMessage => {
                     trackedMessages[1] = lastMessage.message_id;
