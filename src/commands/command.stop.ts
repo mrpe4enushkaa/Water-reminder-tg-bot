@@ -18,7 +18,7 @@ export class StopCommand extends Command {
     }
 
     public handle(): void {
-        this.bot.onText(/^\/time$/, (message): void => {
+        this.bot.onText(/^\/stop$/, (message): void => {
             const chatId = message.chat.id;
 
             if (isNotificationQueue(chatId, this.notificationQueue)) return;
