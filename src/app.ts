@@ -8,6 +8,8 @@ import { ParametersCommand } from "./commands/command.parameters";
 import { DrinkWaterCommand } from "./commands/command.drink-water";
 import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
+import { UserProvidedData } from "./models/user-provided-data.type";
+import { HelpCommand } from "./commands/command.help";
 
 class Bot {
     private bot: TelegramBot;
@@ -17,6 +19,7 @@ class Bot {
     private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
     private notificationQueue: Set<number> = new Set();
     private editUserParameters: Set<number> = new Set();
+    private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
@@ -41,11 +44,12 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
-            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
-            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
-            new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
-            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters),
+            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new HelpCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
         ];
 
         for (const command of this.commands) {

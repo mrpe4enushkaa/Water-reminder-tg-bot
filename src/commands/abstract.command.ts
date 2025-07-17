@@ -1,6 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
+import { UserProvidedData } from "../models/user-provided-data.type";
 
 export abstract class Command {
     constructor(
@@ -8,7 +9,8 @@ export abstract class Command {
         protected waitingStates: Map<number, WaitingStates>,
         private lastMessages: Map<number, MessagesIdsTuple>,
         protected notificationQueue: Set<number>,
-        protected editUserParameters: Set<number>
+        protected editUserParameters: Set<number>,
+        protected userProvidedData: Map<number, UserProvidedData>
     ) { }
 
     abstract handle(): void;

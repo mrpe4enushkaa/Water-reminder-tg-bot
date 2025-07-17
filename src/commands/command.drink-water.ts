@@ -6,6 +6,7 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { CallbackData } from "../models/callback-data.enum";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isValidVolume } from "../utils/validators";
+import { UserProvidedData } from "../models/user-provided-data.type";
 
 export class DrinkWaterCommand extends Command {
     private messageVolume = (chatId: number, volume: number): Promise<TelegramBot.Message> =>
@@ -23,9 +24,10 @@ export class DrinkWaterCommand extends Command {
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
-        editUserParameters: Set<number>
+        editUserParameters: Set<number>,
+        userProvidedData: Map<number, UserProvidedData>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
     }
 
     public handle(): void {

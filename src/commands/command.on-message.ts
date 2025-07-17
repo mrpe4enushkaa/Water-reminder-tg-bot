@@ -4,6 +4,7 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isNotificationQueue } from "../utils/validators";
 import { prompts } from "../utils/prompts";
+import { UserProvidedData } from "../models/user-provided-data.type";
 
 export class OnMessage extends Command {
     constructor(
@@ -11,9 +12,10 @@ export class OnMessage extends Command {
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
-        editUserParameters: Set<number>
+        editUserParameters: Set<number>,
+        userProvidedData: Map<number, UserProvidedData>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
     }
 
     handle(): void {

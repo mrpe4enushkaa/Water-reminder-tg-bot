@@ -8,16 +8,15 @@ import { prompts } from "../utils/prompts";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
 
 export class ParametersCommand extends Command {
-    private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
-
     constructor(
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
-        editUserParameters: Set<number>
+        editUserParameters: Set<number>,
+        userProvidedData: Map<number, UserProvidedData>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
     }
 
     public handle(): void {
@@ -34,6 +33,17 @@ export class ParametersCommand extends Command {
             this.editUserParameters.add(chatId);
 
             this.startMessage(chatId);
+        });
+
+        this.bot.onText(/^\/info_parameters$/, (message): void => {
+            const chatId = message.chat.id;
+            //if (!get userProvidedData from mongo or redis) return;
+
+            const userParameters = this.userProvidedData.get(chatId);
+
+            if (typeof userParameters !== "undefined") {
+                this.bot.sendMessage(chatId, `Параметры пользователя: \n ${prompts.addParameters.end(userParameters)}`);
+            }
         });
 
         this.bot.on("message", (message): void => {

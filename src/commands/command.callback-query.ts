@@ -5,6 +5,7 @@ import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
+import { UserProvidedData } from "../models/user-provided-data.type";
 
 export class CallbackQueryCommand extends Command {
     constructor(
@@ -12,9 +13,10 @@ export class CallbackQueryCommand extends Command {
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
-        editUserParameters: Set<number>
+        editUserParameters: Set<number>,
+        userProvidedData: Map<number, UserProvidedData>
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
     }
 
     public handle(): void {
@@ -64,11 +66,36 @@ export class CallbackQueryCommand extends Command {
                     if (typeof state !== "undefined") {
                         const nextState = state + 1;
 
-                        if (nextState <= 3) {
+                        if (nextState) {
                             const trackedMessages = this.getLastMessages(chatId);
 
                             if (typeof trackedMessages[1] !== "undefined") {
                                 this.bot.deleteMessage(chatId, trackedMessages[1]);
+                            }
+
+                            if (nextState > 3) {
+                                const userParameters = this.userProvidedData.get(chatId);
+
+                                if (userParameters &&
+                                    typeof userParameters.weight === "undefined" &&
+                                    typeof userParameters.city === "undefined" &&
+                                    userParameters.time.every(value => typeof value === "undefined")) {
+                                    this.bot.editMessageText("Данные не были изменены. Действие отменено.", {
+                                        chat_id: chatId,
+                                        message_id: trackedMessages[0]
+                                    });
+                                } else {
+                                    if (typeof userParameters !== "undefined") {
+                                        this.bot.editMessageText(`Данные изменены. ${prompts.addParameters.end(userParameters)}`, {
+                                            chat_id: chatId,
+                                            message_id: trackedMessages[0]
+                                        });
+                                    }
+                                }
+                                this.editUserParameters.delete(chatId);
+                                this.waitingStates.delete(chatId);
+                                this.clearLastMessages(chatId);
+                                return;
                             }
 
                             switch (nextState) {
