@@ -29,9 +29,7 @@ export class StopCommand extends Command {
             this.bot.sendMessage(chatId, `Чтобы остановить отправку пуш уведомлений, напишите "Остановить"`, {
                 ...inlineKeyboardCancel,
                 parse_mode: "HTML"
-            }).then(lastMessage => {
-                this.setLastMessages(chatId, [lastMessage.message_id, undefined]);
-            });
+            }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
         this.bot.on("message", (message): void => {
@@ -39,7 +37,7 @@ export class StopCommand extends Command {
             const text = message.text || "";
 
             if (this.waitingStates.get(chatId) === WaitingStates.STOP) {
-                if (text !== "Остановить") {
+                if (text.toLocaleLowerCase() !== "остановить") {
                     this.bot.deleteMessage(chatId, message.message_id);
                     return;
                 }

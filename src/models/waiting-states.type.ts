@@ -7,4 +7,6 @@ export enum WaitingStates {
     CHOICE = 5,
 
     STOP = 6,
+
+    DELETE = 7,
 }

@@ -6,6 +6,7 @@ import { UserProvidedData } from "../models/user-provided-data.type";
 import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "../utils/validators";
 import { prompts } from "../utils/prompts";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
+import { CallbackData } from "../models/callback-data.enum";
 
 export class ParametersCommand extends Command {
     constructor(
@@ -29,10 +30,21 @@ export class ParametersCommand extends Command {
 
         this.bot.onText(/^\/edit_parameters$/, (message): void => {
             const chatId = message.chat.id;
-
+            //if (!get userProvidedData from mongo or redis) return;
             this.editUserParameters.add(chatId);
 
             this.startMessage(chatId);
+        });
+
+        this.bot.onText(/^\/delete_parameters$/, (message): void => {
+            const chatId = message.chat.id;
+            //if (!get userProvidedData from mongo or redis) return;
+            this.waitingStates.set(chatId, WaitingStates.DELETE);
+
+            this.bot.sendMessage(chatId, `Вы точно хотите удалить свои данные? Если хотите удалить, напишите "Да"`, {
+                parse_mode: "HTML",
+                ...inlineKeyboardCancel
+            }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
         this.bot.onText(/^\/info_parameters$/, (message): void => {
@@ -56,6 +68,8 @@ export class ParametersCommand extends Command {
                     return this.handleCity(chatId, message);
                 case WaitingStates.TIME:
                     return this.handleTime(chatId, message);
+                case WaitingStates.DELETE:
+                    return this.handleDelete(chatId, message);
             }
         });
     }
@@ -279,6 +293,22 @@ export class ParametersCommand extends Command {
         this.editUserParameters.delete(chatId);
 
         //this.editUserParameters.has(chatId) ? updateUserParameters : saveUserParameters
+    }
+
+    private handleDelete(chatId: number, message: TelegramBot.Message): void {
+        const trackedMessages = this.getLastMessages(chatId);
+        const text = message.text || "";
+
+        if (text.toLowerCase() !== "да") {
+            if (typeof trackedMessages[0] !== "undefined") {
+                this.bot.deleteMessage(chatId, message.message_id);
+                return;
+            }
+        }
+
+        this.bot.sendMessage(chatId, "Данные удалены");
+        this.clearLastMessages(chatId);
+        this.waitingStates.delete(chatId);
     }
 
     private async saveUserParameters(data: UserProvidedData): Promise<void> {

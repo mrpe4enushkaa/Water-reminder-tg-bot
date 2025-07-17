@@ -33,13 +33,13 @@ class Bot {
             { command: "/start", description: "Старт бота" },
             { command: "/add_parameters", description: "Ввести параметры" },
             { command: "/edit_parameters", description: "Изменить параметры" },
+            { command: "/delete_parameters", description: "Удалить данные о пользователе" },
             { command: "/info_parameters", description: "Посмотреть параметры" },
             { command: "/drink", description: "Выпил(а) воду" },
             { command: "/help", description: "Инструкция по командам" },
             { command: "/time", description: "Время до следующего уведомления" },
             { command: "/continue", description: "Продолжить напоминать" },
             { command: "/stop", description: "Прекратить напоминать" },
-            // { command: "/delete_parameters", description: "Удалить данные о пользователе" },
             // { command: "/change_language", description: "Изменение языка бота" },
         ], {
             language_code: "ru"
