@@ -10,6 +10,7 @@ import { MessagesIdsTuple } from "./models/messages-ids.type";
 import { WaitingStates } from "./models/waiting-states.type";
 import { UserProvidedData } from "./models/user-provided-data.type";
 import { HelpCommand } from "./commands/command.help";
+import { TimeCommand } from "./commands/command.time";
 
 class Bot {
     private bot: TelegramBot;
@@ -50,6 +51,7 @@ class Bot {
             new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
             new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
             new HelpCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new TimeCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
         ];
 
         for (const command of this.commands) {
