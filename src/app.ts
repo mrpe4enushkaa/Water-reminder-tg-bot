@@ -36,8 +36,8 @@ class Bot {
             { command: "/help", description: "Инструкция по командам" },
             { command: "/time", description: "Время до следующего уведомления" },
             { command: "/stop", description: "Прекратить напоминать" },
-            // { command: "/change_language", description: "Изменение языка бота" },
             // { command: "/delete_parameters", description: "Удалить данные о пользователе" },
+            // { command: "/change_language", description: "Изменение языка бота" },
         ], {
             language_code: "ru"
         });
