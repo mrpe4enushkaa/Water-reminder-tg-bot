@@ -23,7 +23,7 @@ export class ContinueCommand extends Command {
 
             if (isNotificationQueue(chatId, this.notificationQueue)) return;
 
-            this.bot.sendMessage(chatId, "Продолжить отправку уведомлений");
+            this.bot.sendMessage(chatId, "Продолжаю отправлять уведомления");
         });
     }
 }

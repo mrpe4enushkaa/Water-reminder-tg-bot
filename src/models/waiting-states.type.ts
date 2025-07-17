@@ -5,4 +5,6 @@ export enum WaitingStates {
     
     DRINK = 4,
     CHOICE = 5,
+
+    STOP = 6,
 }

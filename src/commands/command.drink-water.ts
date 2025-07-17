@@ -121,7 +121,6 @@ export class DrinkWaterCommand extends Command {
 
         this.waitingStates.delete(chatId);
         this.notificationQueue.delete(chatId);
-
         this.clearLastMessages(chatId);
     }
 
@@ -152,7 +151,6 @@ export class DrinkWaterCommand extends Command {
 
         this.waitingStates.delete(chatId);
         this.notificationQueue.delete(chatId);
-
         this.clearLastMessages(chatId);
     }
 
