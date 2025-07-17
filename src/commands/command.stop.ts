@@ -5,6 +5,7 @@ import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { isNotificationQueue } from "../utils/validators";
 import { inlineKeyboardCancel } from "../utils/reply-markups";
+import { prompts } from "../utils/prompts";
 
 export class StopCommand extends Command {
     constructor(
@@ -26,9 +27,13 @@ export class StopCommand extends Command {
 
             this.waitingStates.set(chatId, WaitingStates.STOP);
 
-            this.bot.sendMessage(chatId, `Чтобы остановить отправку пуш уведомлений, напишите "Остановить"`, {
+            this.bot.sendMessage(chatId, prompts.stop.ask, {
                 ...inlineKeyboardCancel,
-                parse_mode: "HTML"
+                parse_mode: "HTML",
+                reply_markup: {
+                    remove_keyboard: true,
+                    ...inlineKeyboardCancel.reply_markup
+                }
             }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
@@ -42,7 +47,19 @@ export class StopCommand extends Command {
                     return;
                 }
 
-                this.bot.sendMessage(chatId, "Пуш уведомления остановлены. Чтобы продолжить получать уведомления от бота, воспользуйтесь командой /continue");
+                const trackedMessages = this.getLastMessages(chatId);
+
+                if (typeof trackedMessages[0] !== "undefined") {
+                    this.bot.editMessageText(prompts.stop.ask, {
+                        chat_id: chatId,
+                        message_id: trackedMessages[0],
+                        parse_mode: "HTML"
+                    });
+                }
+
+                this.bot.sendMessage(chatId, prompts.stop.stopped, {
+                    parse_mode: "HTML"
+                });
 
                 this.waitingStates.delete(chatId);
                 this.clearLastMessages(chatId);

@@ -4,6 +4,7 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
 import { isNotificationQueue } from "../utils/validators";
+import { prompts } from "../utils/prompts";
 
 export class HelpCommand extends Command {
     constructor(
@@ -23,7 +24,12 @@ export class HelpCommand extends Command {
 
             if (isNotificationQueue(chatId, this.notificationQueue)) return;
 
-            this.bot.sendMessage(chatId, "Команда помощи");
+            this.bot.sendMessage(chatId, prompts.help, {
+                parse_mode: "HTML",
+                reply_markup: {
+                    remove_keyboard: true
+                }
+            });
         });
     }
 }

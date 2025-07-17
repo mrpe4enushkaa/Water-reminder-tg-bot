@@ -17,7 +17,7 @@ export const keyboardVolumeOptions: TelegramBot.SendMessageOptions = {
         ],
         resize_keyboard: true,
         one_time_keyboard: true,
-        input_field_placeholder: "Выберите объём воды",
+        input_field_placeholder: prompts.drinkWater.markupVolume,
     }
 };
 
@@ -32,7 +32,7 @@ export const inlineKeyboardSnooze: TelegramBot.SendMessageOptions = {
 export const inlineKeyboardContinue: { reply_markup: TelegramBot.InlineKeyboardMarkup } = {
     reply_markup: {
         inline_keyboard: [
-            [{ text: "Пропустить", callback_data: CallbackData.CONTINUE }]
+            [{ text: prompts.editParameters.continue, callback_data: CallbackData.CONTINUE }]
         ]
     }
 }

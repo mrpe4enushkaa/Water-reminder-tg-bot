@@ -41,9 +41,12 @@ export class ParametersCommand extends Command {
             //if (!get userProvidedData from mongo or redis) return;
             this.waitingStates.set(chatId, WaitingStates.DELETE);
 
-            this.bot.sendMessage(chatId, `Вы точно хотите удалить свои данные? Если хотите удалить, напишите "Да"`, {
+            this.bot.sendMessage(chatId, prompts.deleteParameters.confirm, {
                 parse_mode: "HTML",
-                ...inlineKeyboardCancel
+                reply_markup: {
+                    remove_keyboard: true,
+                    ...inlineKeyboardCancel.reply_markup
+                }
             }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
@@ -54,7 +57,12 @@ export class ParametersCommand extends Command {
             const userParameters = this.userProvidedData.get(chatId);
 
             if (typeof userParameters !== "undefined") {
-                this.bot.sendMessage(chatId, `Параметры пользователя: \n ${prompts.addParameters.end(userParameters)}`);
+                this.bot.sendMessage(chatId, prompts.info_parameters(userParameters), {
+                    parse_mode: "HTML",
+                    reply_markup: {
+                        remove_keyboard: true
+                    }
+                });
             }
         });
 
@@ -88,12 +96,13 @@ export class ParametersCommand extends Command {
 
         const trackedMessages = this.getLastMessages(chatId);
 
-        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? "Введите новый вес тела" : prompts.addParameters.weight, {
+        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? prompts.editParameters.weight : prompts.addParameters.weight, {
             reply_markup: {
                 inline_keyboard: [
                     ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                     ...inlineKeyboardCancel.reply_markup.inline_keyboard
-                ]
+                ],
+                remove_keyboard: true
             },
             parse_mode: "HTML"
         }).then(lastMessage => {
@@ -106,7 +115,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = this.getLastMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(this.editUserParameters.has(chatId) ? "Введите новый вес тела" : prompts.addParameters.weight, {
+            this.bot.editMessageText(this.editUserParameters.has(chatId) ? prompts.editParameters.weight : prompts.addParameters.weight, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -153,7 +162,7 @@ export class ParametersCommand extends Command {
             goal: parseFloat((weight * 0.035).toFixed(2)),
         });
 
-        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? "Введите новый город" : prompts.addParameters.city, {
+        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? prompts.editParameters.city : prompts.addParameters.city, {
             reply_markup: {
                 inline_keyboard: [
                     ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
@@ -171,7 +180,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = this.getLastMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(this.editUserParameters.has(chatId) ? "Введите новый город" : prompts.addParameters.city, {
+            this.bot.editMessageText(this.editUserParameters.has(chatId) ? prompts.editParameters.city : prompts.addParameters.city, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -217,7 +226,7 @@ export class ParametersCommand extends Command {
             goal: userProvidedData?.goal
         });
 
-        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? "Введите новое время" : prompts.addParameters.time, {
+        this.bot.sendMessage(chatId, this.editUserParameters.has(chatId) ? prompts.editParameters.time : prompts.addParameters.time, {
             reply_markup: {
                 inline_keyboard: [
                     ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
@@ -235,7 +244,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = this.getLastMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(this.editUserParameters.has(chatId) ? "Введите новое время" : prompts.addParameters.time, {
+            this.bot.editMessageText(this.editUserParameters.has(chatId) ? prompts.editParameters.time : prompts.addParameters.time, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -281,7 +290,16 @@ export class ParametersCommand extends Command {
         const userData = this.userProvidedData.get(chatId);
 
         if (typeof userData !== "undefined") {
-            this.bot.sendMessage(chatId, prompts.addParameters.end(userData));
+            if (this.editUserParameters.has(chatId)) {
+                this.bot.sendMessage(chatId, prompts.editParameters.confirm(userData), {
+                    parse_mode: "HTML",
+                });
+                return;
+            }
+
+            this.bot.sendMessage(chatId, prompts.addParameters.end(userData), {
+                parse_mode: "HTML"
+            });
         } else {
             this.bot.sendMessage(chatId, prompts.error(this.editUserParameters.has(chatId) ? "/edit_parameters" : "/add_parameters"), {
                 parse_mode: "HTML"
@@ -306,7 +324,17 @@ export class ParametersCommand extends Command {
             }
         }
 
-        this.bot.sendMessage(chatId, "Данные удалены");
+        if (typeof trackedMessages[0] !== "undefined") {
+            this.bot.editMessageText(prompts.deleteParameters.confirm, {
+                chat_id: chatId,
+                message_id: trackedMessages[0],
+                parse_mode: "HTML"
+            });
+        }
+
+        this.bot.sendMessage(chatId, prompts.deleteParameters.deleted, {
+            parse_mode: "HTML"
+        });
         this.clearLastMessages(chatId);
         this.waitingStates.delete(chatId);
     }

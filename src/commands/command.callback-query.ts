@@ -80,15 +80,17 @@ export class CallbackQueryCommand extends Command {
                                     typeof userParameters.weight === "undefined" &&
                                     typeof userParameters.city === "undefined" &&
                                     userParameters.time.every(value => typeof value === "undefined")) {
-                                    this.bot.editMessageText("Данные не были изменены. Действие отменено.", {
+                                    this.bot.editMessageText(prompts.editParameters.cancel, {
                                         chat_id: chatId,
-                                        message_id: trackedMessages[0]
+                                        message_id: trackedMessages[0],
+                                        parse_mode: "HTML"
                                     });
                                 } else {
                                     if (typeof userParameters !== "undefined") {
-                                        this.bot.editMessageText(`Данные изменены. ${prompts.addParameters.end(userParameters)}`, {
+                                        this.bot.editMessageText(prompts.editParameters.confirm(userParameters), {
                                             chat_id: chatId,
-                                            message_id: trackedMessages[0]
+                                            message_id: trackedMessages[0],
+                                            parse_mode: "HTML"
                                         });
                                     }
                                 }
@@ -100,7 +102,7 @@ export class CallbackQueryCommand extends Command {
 
                             switch (nextState) {
                                 case WaitingStates.CITY:
-                                    this.bot.editMessageText("Введите новый город", {
+                                    this.bot.editMessageText(prompts.editParameters.city, {
                                         chat_id: chatId,
                                         message_id: trackedMessages[0],
                                         reply_markup: {
@@ -119,7 +121,7 @@ export class CallbackQueryCommand extends Command {
                                     this.clearLastMessages(chatId);
                                     break;
                                 case WaitingStates.TIME:
-                                    this.bot.editMessageText("Введите новое время", {
+                                    this.bot.editMessageText(prompts.editParameters.time, {
                                         chat_id: chatId,
                                         message_id: trackedMessages[0],
                                         reply_markup: {

@@ -24,7 +24,12 @@ export class StartCommand extends Command {
 
             if (isNotificationQueue(chatId, this.notificationQueue)) return;
 
-            this.bot.sendMessage(chatId, prompts.start.welcome(message.chat.username), { parse_mode: "HTML" });
+            this.bot.sendMessage(chatId, prompts.start.welcome(message.chat.username), {
+                parse_mode: "HTML",
+                reply_markup: { 
+                    remove_keyboard: true
+                }
+            });
         });
     }
 }

@@ -3,16 +3,17 @@ import { Command } from "./abstract.command";
 import { prompts } from "../utils/prompts";
 import { keyboardVolumeOptions, inlineKeyboardSnooze } from "../utils/reply-markups";
 import { WaitingStates } from "../models/waiting-states.type";
-import { CallbackData } from "../models/callback-data.enum";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isValidVolume } from "../utils/validators";
 import { UserProvidedData } from "../models/user-provided-data.type";
 
 export class DrinkWaterCommand extends Command {
     private messageVolume = (chatId: number, volume: number): Promise<TelegramBot.Message> =>
-        this.bot.sendMessage(chatId, prompts.drinkWater.add(volume));
+        this.bot.sendMessage(chatId, prompts.drinkWater.add(volume), {
+            parse_mode: "HTML"
+        });
 
-    private messageSnooze = (chatId: number): Promise<number | void> => this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { ...inlineKeyboardSnooze })
+    private messageSnooze = (chatId: number): Promise<number | void> => this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { parse_mode: "HTML", ...inlineKeyboardSnooze })
         .then(lastMessage => {
             const trackedMessages = this.getLastMessages(chatId);
             trackedMessages[1] = lastMessage.message_id;
@@ -42,8 +43,9 @@ export class DrinkWaterCommand extends Command {
             this.notificationQueue.add(chatId);
             this.waitingStates.set(chatId, WaitingStates.DRINK);
 
-            this.startMessage(chatId, trackedMessages, prompts.drinkWater.timeTo, {
-                ...keyboardVolumeOptions
+            this.startMessage(chatId, trackedMessages, prompts.drinkWater.timeToDrink, {
+                ...keyboardVolumeOptions,
+                parse_mode: "HTML"
             });
         });
 
@@ -65,7 +67,8 @@ export class DrinkWaterCommand extends Command {
                     this.bot.sendMessage(chatId, prompts.drinkWater.choice, {
                         reply_markup: {
                             remove_keyboard: true
-                        }
+                        },
+                        parse_mode: "HTML"
                     }).then(lastMessage => {
                         trackedMessages[0] = lastMessage.message_id;
                         this.messageSnooze(chatId);
@@ -104,7 +107,8 @@ export class DrinkWaterCommand extends Command {
                 \n${prompts.drinkWater.snooze}`, {
                     chat_id: chatId,
                     message_id: trackedMessages[1],
-                    reply_markup: inlineKeyboardSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup
+                    reply_markup: inlineKeyboardSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup,
+                    parse_mode: "HTML"
                 }).catch(() => { });
             }
 
@@ -135,7 +139,8 @@ export class DrinkWaterCommand extends Command {
                 \n${prompts.drinkWater.snooze}`, {
                     chat_id: chatId,
                     message_id: trackedMessages[1],
-                    reply_markup: inlineKeyboardSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup
+                    reply_markup: inlineKeyboardSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup,
+                    parse_mode: "HTML"
                 }).catch(() => { });
             }
             return;
