@@ -11,6 +11,8 @@ import { WaitingStates } from "./models/waiting-states.type";
 import { UserProvidedData } from "./models/user-provided-data.type";
 import { HelpCommand } from "./commands/command.help";
 import { TimeCommand } from "./commands/command.time";
+import { ContinueCommand } from "./commands/command.continue";
+import { StopCommand } from "./commands/command.stop";
 
 class Bot {
     private bot: TelegramBot;
@@ -35,6 +37,7 @@ class Bot {
             { command: "/drink", description: "Выпил(а) воду" },
             { command: "/help", description: "Инструкция по командам" },
             { command: "/time", description: "Время до следующего уведомления" },
+            { command: "/continue", description: "Продолжить напоминать" },
             { command: "/stop", description: "Прекратить напоминать" },
             // { command: "/delete_parameters", description: "Удалить данные о пользователе" },
             // { command: "/change_language", description: "Изменение языка бота" },
@@ -52,6 +55,8 @@ class Bot {
             new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
             new HelpCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
             new TimeCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new ContinueCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
+            new StopCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData),
         ];
 
         for (const command of this.commands) {
