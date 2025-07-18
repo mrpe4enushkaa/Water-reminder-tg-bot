@@ -30,17 +30,17 @@ class Bot {
 
     private setCommands(): void {
         this.bot.setMyCommands([
-            { command: "/start", description: "Старт бота" },
-            { command: "/add_parameters", description: "Ввести параметры" },
-            { command: "/edit_parameters", description: "Изменить параметры" },
-            { command: "/delete_parameters", description: "Удалить данные о пользователе" },
-            { command: "/info_parameters", description: "Посмотреть параметры" },
-            { command: "/drink", description: "Выпил(а) воду" },
-            { command: "/help", description: "Инструкция по командам" },
-            { command: "/time", description: "Время до следующего уведомления" },
-            { command: "/continue", description: "Продолжить напоминать" },
-            { command: "/stop", description: "Прекратить напоминать" },
-            // { command: "/change_language", description: "Изменение языка бота" },
+            { command: "/start", description: "🚀 Запустить бота и начать работу" },
+            { command: "/add_parameters", description: "➕ Ввести параметры (вес и т.д.)" },
+            { command: "/edit_parameters", description: "✏️ Изменить ранее введённые параметры" },
+            { command: "/delete_parameters", description: "🗑️ Удалить все данные о себе" },
+            { command: "/info_parameters", description: "📋 Посмотреть сохранённые параметры" },
+            { command: "/drink", description: "💧 Отметить, что вы выпили воду" },
+            { command: "/help", description: "ℹ️ Посмотреть инструкцию по использованию бота" },
+            { command: "/time", description: "⏳ Узнать, когда будет следующее напоминание" },
+            { command: "/continue", description: "🔔 Продолжить напоминания о воде" },
+            { command: "/stop", description: "🔕 Остановить напоминания" },
+            // { command: "/change_language", description: "🌐 Сменить язык бота" },
         ], {
             language_code: "ru"
         });
