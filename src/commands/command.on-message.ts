@@ -21,7 +21,7 @@ export class OnMessage extends Command {
     }
 
     handle(): void {
-        this.bot.on("message", (message): void => {
+        this.bot.on("message", async (message): Promise<void> => {
             const chatId = message.chat.id;
 
             if (isNotificationQueue(chatId, this.notificationQueue)) return;
@@ -57,7 +57,7 @@ export class OnMessage extends Command {
 
                 this.waitingStates.delete(chatId);
                 this.clearLastMessages(chatId);
-                this.editUserParameters.delete(chatId);
+                await this.redis.sremove("edit-parameters", chatId.toString());
                 return;
             };
 

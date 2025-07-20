@@ -6,7 +6,6 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
 import { UserProvidedData } from "../models/user-provided-data.type";
-import { RedisOptions } from "../databases/redis/redis.interface";
 import { RedisService } from "../databases/redis/redis.service";
 
 export class CallbackQueryCommand extends Command {
@@ -97,7 +96,7 @@ export class CallbackQueryCommand extends Command {
                                         });
                                     }
                                 }
-                                this.editUserParameters.delete(chatId);
+                                this.redis.sremove("edit-parameters", chatId.toString());
                                 this.waitingStates.delete(chatId);
                                 this.clearLastMessages(chatId);
                                 return;
@@ -110,7 +109,7 @@ export class CallbackQueryCommand extends Command {
                                         message_id: trackedMessages[0],
                                         reply_markup: {
                                             inline_keyboard: [
-                                                ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                                                ...inlineKeyboardContinue.reply_markup.inline_keyboard,
                                                 ...inlineKeyboardCancel.reply_markup.inline_keyboard
                                             ]
                                         },
@@ -129,7 +128,7 @@ export class CallbackQueryCommand extends Command {
                                         message_id: trackedMessages[0],
                                         reply_markup: {
                                             inline_keyboard: [
-                                                ...(this.editUserParameters.has(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                                                ...inlineKeyboardContinue.reply_markup.inline_keyboard,
                                                 ...inlineKeyboardCancel.reply_markup.inline_keyboard
                                             ]
                                         },
