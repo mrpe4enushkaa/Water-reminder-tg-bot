@@ -13,12 +13,10 @@ export class CallbackQueryCommand extends Command {
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
-        notificationQueue: Set<number>,
-        editUserParameters: Set<number>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
+        super(bot, waitingStates, lastMessages, userProvidedData, redis);
     }
 
     public handle(): void {
@@ -42,7 +40,7 @@ export class CallbackQueryCommand extends Command {
                     }
 
                     this.waitingStates.delete(chatId);
-                    this.notificationQueue.delete(chatId);
+                    this.redis.sremove("notification-queue", chatId);
                     this.clearLastMessages(chatId);
                 }
 
@@ -58,7 +56,7 @@ export class CallbackQueryCommand extends Command {
                     }
 
                     this.clearLastMessages(chatId);
-                    this.notificationQueue.delete(chatId);
+                    this.redis.sremove("notification-queue", chatId);
                     this.waitingStates.delete(chatId);
                 }
 
@@ -96,7 +94,7 @@ export class CallbackQueryCommand extends Command {
                                         });
                                     }
                                 }
-                                this.redis.sremove("edit-parameters", chatId.toString());
+                                this.redis.sremove("edit-parameters", chatId);
                                 this.waitingStates.delete(chatId);
                                 this.clearLastMessages(chatId);
                                 return;

@@ -7,9 +7,9 @@ export interface RedisOptions {
     hget(key: string): Promise<Record<string, string>>;
     hdelete(key: string): Promise<number>;
 
-    sadd(key: string, data: string): Promise<number>;
-    sismember(key: string, data: string): Promise<number>;
-    sremove(key: string, data: string): Promise<number>;
+    sadd(key: string, data: number | string): Promise<number>;
+    sismember(key: string, data: number | string): Promise<number>;
+    sremove(key: string, data: number | string): Promise<number>;
 
     expire(key: string, time: number): Promise<number>;
 }

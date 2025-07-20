@@ -25,16 +25,14 @@ export class DrinkWaterCommand extends Command {
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
-        notificationQueue: Set<number>,
-        editUserParameters: Set<number>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
+        super(bot, waitingStates, lastMessages, userProvidedData, redis);
     }
 
     public handle(): void {
-        this.bot.onText(/^\/drink$/, (message): void => {
+        this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
             if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
                 return;
@@ -42,7 +40,7 @@ export class DrinkWaterCommand extends Command {
 
             const trackedMessages = this.getLastMessages(chatId);
 
-            this.notificationQueue.add(chatId);
+            await this.redis.sadd("notification-queue", chatId);
             this.waitingStates.set(chatId, WaitingStates.DRINK);
 
             this.startMessage(chatId, trackedMessages, prompts.drinkWater.timeToDrink, {
@@ -51,7 +49,7 @@ export class DrinkWaterCommand extends Command {
             });
         });
 
-        this.bot.on("message", (message): void => {
+        this.bot.on("message", async (message): Promise<void> => {
             const chatId = message.chat.id;
             const text = message.text || "";
 
@@ -79,9 +77,11 @@ export class DrinkWaterCommand extends Command {
 
                 switch (this.waitingStates.get(chatId)) {
                     case WaitingStates.DRINK:
-                        return this.keyboardChoiseWater(chatId, message);
+                        await this.keyboardChoiseWater(chatId, message);
+                        break;
                     case WaitingStates.CHOICE:
-                        return this.userChoiseWater(chatId, message);
+                        await this.userChoiseWater(chatId, message);
+                        break;
                 }
             }
         });
@@ -97,7 +97,7 @@ export class DrinkWaterCommand extends Command {
         });
     }
 
-    private keyboardChoiseWater(chatId: number, message: TelegramBot.Message): void {
+    private async keyboardChoiseWater(chatId: number, message: TelegramBot.Message): Promise<void> {
         const text = message?.text || "";
         const trackedMessages = this.getLastMessages(chatId);
 
@@ -126,11 +126,11 @@ export class DrinkWaterCommand extends Command {
         this.messageVolume(chatId, volume);
 
         this.waitingStates.delete(chatId);
-        this.notificationQueue.delete(chatId);
+        await this.redis.sremove("notification-queue", chatId);
         this.clearLastMessages(chatId);
     }
 
-    private userChoiseWater(chatId: number, message: TelegramBot.Message): void {
+    private async userChoiseWater(chatId: number, message: TelegramBot.Message): Promise<void> {
         const text = message.text || "";
         const trackedMessages = this.getLastMessages(chatId);
 
@@ -157,7 +157,7 @@ export class DrinkWaterCommand extends Command {
         }
 
         this.waitingStates.delete(chatId);
-        this.notificationQueue.delete(chatId);
+        await this.redis.sremove("notification-queue", chatId);
         this.clearLastMessages(chatId);
     }
 

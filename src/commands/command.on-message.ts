@@ -12,19 +12,17 @@ export class OnMessage extends Command {
         bot: TelegramBot,
         waitingStates: Map<number, WaitingStates>,
         lastMessages: Map<number, MessagesIdsTuple>,
-        notificationQueue: Set<number>,
-        editUserParameters: Set<number>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
+        super(bot, waitingStates, lastMessages, userProvidedData, redis);
     }
 
     handle(): void {
         this.bot.on("message", async (message): Promise<void> => {
             const chatId = message.chat.id;
 
-            if (isNotificationQueue(chatId, this.notificationQueue)) return;
+            if (await isNotificationQueue(chatId, this.redis) === 1) return;
 
             if (message.text?.startsWith("/")) {
                 const trackedMessages = this.getLastMessages(chatId);
@@ -57,7 +55,7 @@ export class OnMessage extends Command {
 
                 this.waitingStates.delete(chatId);
                 this.clearLastMessages(chatId);
-                await this.redis.sremove("edit-parameters", chatId.toString());
+                await this.redis.sremove("edit-parameters", chatId);
                 return;
             };
 

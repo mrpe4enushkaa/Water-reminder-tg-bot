@@ -9,8 +9,6 @@ export abstract class Command {
         protected bot: TelegramBot,
         protected waitingStates: Map<number, WaitingStates>,
         private lastMessages: Map<number, MessagesIdsTuple>,
-        protected notificationQueue: Set<number>,
-        protected editUserParameters: Set<number>,
         protected userProvidedData: Map<number, UserProvidedData>,
         protected redis: RedisService
     ) { }

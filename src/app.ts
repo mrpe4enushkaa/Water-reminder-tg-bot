@@ -18,13 +18,11 @@ import { StopCommand } from "./commands/command.stop";
 
 class Bot {
     private bot: TelegramBot;
-    private commands: Command[] = [];
     private redis: RedisService;
+    private commands: Command[] = [];
 
     private waitingStates: Map<number, WaitingStates> = new Map<number, WaitingStates>;
     private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
-    private notificationQueue: Set<number> = new Set();
-    private editUserParameters: Set<number> = new Set();
     private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
 
     constructor(private readonly token: string) {
@@ -53,15 +51,15 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new HelpCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new TimeCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new ContinueCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
-            new StopCommand(this.bot, this.waitingStates, this.lastMessages, this.notificationQueue, this.editUserParameters, this.userProvidedData, this.redis),
+            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new HelpCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new TimeCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new ContinueCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new StopCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
         ];
 
         for (const command of this.commands) {

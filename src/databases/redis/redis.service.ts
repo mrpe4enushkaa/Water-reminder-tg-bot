@@ -50,16 +50,16 @@ export class RedisService implements RedisOptions {
         return await this.client.hdel(key);
     }
 
-    public async sadd(key: string, data: string): Promise<number> {
-        return await this.client.sadd(key, data);
+    public async sadd(key: string, data: number | string): Promise<number> {
+        return await this.client.sadd(key, data.toString());
     }
 
-    public async sismember(key: string, data: string): Promise<number> {
-        return await this.client.sismember(key, data);
+    public async sismember(key: string, data: number | string): Promise<number> {
+        return await this.client.sismember(key, data.toString());
     }
 
-    public async sremove(key: string, data: string): Promise<number> {
-        return await this.client.srem(key, data);
+    public async sremove(key: string, data: number | string): Promise<number> {
+        return await this.client.srem(key, data.toString());
     }
 
     public async expire(key: string, time: number): Promise<number> {
