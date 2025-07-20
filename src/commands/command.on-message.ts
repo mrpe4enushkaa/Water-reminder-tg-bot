@@ -58,6 +58,11 @@ export class OnMessage extends Command {
                 this.editUserParameters.delete(chatId);
                 return;
             };
+
+            if (!this.waitingStates.has(chatId)) {
+                this.bot.deleteMessage(chatId, message.message_id);
+                return;
+            }
         });
     }
 }

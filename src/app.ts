@@ -1,5 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
+import Redis from "ioredis";
 import { ConfigService } from "./config/config.service";
+import { RedisService } from "./databases/redis/redis.service";
 import { Command } from "./commands/abstract.command";
 import { OnMessage } from "./commands/command.on-message";
 import { CallbackQueryCommand } from "./commands/command.callback-query";
@@ -17,6 +19,7 @@ import { StopCommand } from "./commands/command.stop";
 class Bot {
     private bot: TelegramBot;
     private commands: Command[] = [];
+    private redis: RedisService;
 
     private waitingStates: Map<number, WaitingStates> = new Map<number, WaitingStates>;
     private lastMessages: Map<number, MessagesIdsTuple> = new Map<number, MessagesIdsTuple>;
@@ -26,6 +29,8 @@ class Bot {
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
+        this.redis = new RedisService();
+        this.redis.handle();
     }
 
     private setCommands(): void {
