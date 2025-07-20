@@ -5,6 +5,7 @@ import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isNotificationQueue } from "../utils/validators";
 import { prompts } from "../utils/prompts";
 import { UserProvidedData } from "../models/user-provided-data.type";
+import { RedisService } from "../databases/redis/redis.service";
 
 export class OnMessage extends Command {
     constructor(
@@ -13,9 +14,10 @@ export class OnMessage extends Command {
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
         editUserParameters: Set<number>,
-        userProvidedData: Map<number, UserProvidedData>
+        userProvidedData: Map<number, UserProvidedData>,
+        redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
     }
 
     handle(): void {

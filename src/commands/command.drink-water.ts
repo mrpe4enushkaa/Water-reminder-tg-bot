@@ -6,6 +6,7 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isValidVolume } from "../utils/validators";
 import { UserProvidedData } from "../models/user-provided-data.type";
+import { RedisService } from "../databases/redis/redis.service";
 
 export class DrinkWaterCommand extends Command {
     private messageVolume = (chatId: number, volume: number): Promise<TelegramBot.Message> =>
@@ -26,9 +27,10 @@ export class DrinkWaterCommand extends Command {
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
         editUserParameters: Set<number>,
-        userProvidedData: Map<number, UserProvidedData>
+        userProvidedData: Map<number, UserProvidedData>,
+        redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
     }
 
     public handle(): void {

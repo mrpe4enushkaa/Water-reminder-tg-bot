@@ -7,6 +7,7 @@ import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "..
 import { prompts } from "../utils/prompts";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
 import { CallbackData } from "../models/callback-data.enum";
+import { RedisService } from "../databases/redis/redis.service";
 
 export class ParametersCommand extends Command {
     constructor(
@@ -15,9 +16,10 @@ export class ParametersCommand extends Command {
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
         editUserParameters: Set<number>,
-        userProvidedData: Map<number, UserProvidedData>
+        userProvidedData: Map<number, UserProvidedData>,
+        redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
     }
 
     public handle(): void {

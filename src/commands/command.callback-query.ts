@@ -6,6 +6,8 @@ import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
 import { UserProvidedData } from "../models/user-provided-data.type";
+import { RedisOptions } from "../databases/redis/redis.interface";
+import { RedisService } from "../databases/redis/redis.service";
 
 export class CallbackQueryCommand extends Command {
     constructor(
@@ -14,9 +16,10 @@ export class CallbackQueryCommand extends Command {
         lastMessages: Map<number, MessagesIdsTuple>,
         notificationQueue: Set<number>,
         editUserParameters: Set<number>,
-        userProvidedData: Map<number, UserProvidedData>
+        userProvidedData: Map<number, UserProvidedData>,
+        redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData);
+        super(bot, waitingStates, lastMessages, notificationQueue, editUserParameters, userProvidedData, redis);
     }
 
     public handle(): void {
