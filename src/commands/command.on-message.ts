@@ -24,8 +24,8 @@ export class OnMessage extends Command {
 
             if (await isNotificationQueue(chatId, this.redis) === 1) return;
 
-            if (message.text?.startsWith("/")) {
-                const trackedMessages = this.getLastMessages(chatId);
+            if (this.waitingStates.has(chatId) && message.text?.startsWith("/")) {
+                const trackedMessages = await this.getTrackedMessages(chatId);
 
                 if (this.waitingStates.get(chatId) !== WaitingStates.DRINK && this.waitingStates.get(chatId) !== WaitingStates.CHOICE) {
                     if (typeof trackedMessages[0] !== "undefined") {
@@ -54,13 +54,8 @@ export class OnMessage extends Command {
                 }
 
                 this.waitingStates.delete(chatId);
-                this.clearLastMessages(chatId);
+                await this.deleteTrackedMessages(chatId);
                 await this.redis.sremove("edit-parameters", chatId);
-                return;
-            };
-
-            if (!this.waitingStates.has(chatId)) {
-                this.bot.deleteMessage(chatId, message.message_id);
                 return;
             }
         });

@@ -20,14 +20,15 @@ export class CallbackQueryCommand extends Command {
     }
 
     public handle(): void {
-        this.bot.on("callback_query", (query): void => {
+        this.bot.on("callback_query", async (query): Promise<void> => {
             const chatId = query.message?.chat.id;
             const data = query?.data;
 
             if (typeof data === "string" && typeof chatId !== "undefined" && this.waitingStates.has(chatId)) {
-                const trackedMessages = this.getLastMessages(chatId);
+                const trackedMessages = await this.getTrackedMessages(chatId);
 
                 if (data === CallbackData.CANCEL_ADD) {
+                    console.log('sdfsd')
                     if (typeof trackedMessages[0] !== "undefined") {
                         this.bot.editMessageText(prompts.cancel, {
                             chat_id: chatId,
@@ -40,8 +41,8 @@ export class CallbackQueryCommand extends Command {
                     }
 
                     this.waitingStates.delete(chatId);
-                    this.redis.sremove("notification-queue", chatId);
-                    this.clearLastMessages(chatId);
+                    await this.redis.sremove("notification-queue", chatId);
+                    await this.deleteTrackedMessages(chatId);
                 }
 
                 if (data === CallbackData.SNOOZE) {
@@ -55,7 +56,7 @@ export class CallbackQueryCommand extends Command {
                         this.bot.deleteMessage(chatId, trackedMessages[0]);
                     }
 
-                    this.clearLastMessages(chatId);
+                    await this.deleteTrackedMessages(chatId);
                     this.redis.sremove("notification-queue", chatId);
                     this.waitingStates.delete(chatId);
                 }
@@ -67,7 +68,7 @@ export class CallbackQueryCommand extends Command {
                         const nextState = state + 1;
 
                         if (nextState) {
-                            const trackedMessages = this.getLastMessages(chatId);
+                            const trackedMessages = await this.getTrackedMessages(chatId);
 
                             if (typeof trackedMessages[1] !== "undefined") {
                                 this.bot.deleteMessage(chatId, trackedMessages[1]);
@@ -96,7 +97,7 @@ export class CallbackQueryCommand extends Command {
                                 }
                                 this.redis.sremove("edit-parameters", chatId);
                                 this.waitingStates.delete(chatId);
-                                this.clearLastMessages(chatId);
+                                await this.deleteTrackedMessages(chatId);
                                 return;
                             }
 
@@ -112,13 +113,13 @@ export class CallbackQueryCommand extends Command {
                                             ]
                                         },
                                         parse_mode: "HTML"
-                                    }).then(lastMessage => {
+                                    }).then(async (lastMessage): Promise<void> => {
                                         const message = lastMessage as TelegramBot.Message;
-                                        this.setLastMessages(chatId, [message.message_id, undefined]);
+                                        await this.setTrackedMessages(chatId, [message.message_id, undefined]);
                                     });
 
                                     this.waitingStates.set(chatId, nextState);
-                                    this.clearLastMessages(chatId);
+                                    // this.clearLastMessages(chatId);
                                     break;
                                 case WaitingStates.TIME:
                                     this.bot.editMessageText(prompts.editParameters.time, {
@@ -131,13 +132,14 @@ export class CallbackQueryCommand extends Command {
                                             ]
                                         },
                                         parse_mode: "HTML"
-                                    }).then(lastMessage => {
+                                    }).then(async (lastMessage): Promise<void> => {
                                         const message = lastMessage as TelegramBot.Message;
-                                        this.setLastMessages(chatId, [message.message_id, undefined]);
+                                        await this.setTrackedMessages(chatId, [message.message_id, undefined]);
                                     });
-
+                                    
+                                    await this.redis.sremove("edit-parameters", chatId);
                                     this.waitingStates.set(chatId, nextState);
-                                    this.clearLastMessages(chatId);
+                                    // this.clearLastMessages(chatId);
                                     break;
                             }
                         }

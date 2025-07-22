@@ -38,7 +38,20 @@ export class RedisService implements RedisOptions {
         return this.client;
     }
 
-    public async hset(key: string, data: Record<string, string>): Promise<number> {
+    public async set(key: string, data: number): Promise<string> {
+        return await this.client.set(key, JSON.stringify(data));
+    }
+
+    public async get(key: string): Promise<string | null> {
+        const data = await this.client.get(key);
+        return data ? JSON.parse(data) : null;
+    }
+
+    public async delete(key: string): Promise<number> {
+        return await this.client.del(key);
+    }
+
+    public async hset(key: string, data: Record<string, string | undefined>): Promise<number> {
         return await this.client.hset(key, data);
     }
 
@@ -51,15 +64,15 @@ export class RedisService implements RedisOptions {
     }
 
     public async sadd(key: string, data: number | string): Promise<number> {
-        return await this.client.sadd(key, data.toString());
+        return await this.client.sadd(key, String(data));
     }
 
     public async sismember(key: string, data: number | string): Promise<number> {
-        return await this.client.sismember(key, data.toString());
+        return await this.client.sismember(key, String(data));
     }
 
     public async sremove(key: string, data: number | string): Promise<number> {
-        return await this.client.srem(key, data.toString());
+        return await this.client.srem(key, String(data));
     }
 
     public async expire(key: string, time: number): Promise<number> {

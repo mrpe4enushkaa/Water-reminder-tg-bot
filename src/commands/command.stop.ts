@@ -34,10 +34,11 @@ export class StopCommand extends Command {
                     remove_keyboard: true,
                     ...inlineKeyboardCancel.reply_markup
                 }
-            }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
+            }).then(async (lastMessage): Promise<void> =>
+                await this.setTrackedMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
-        this.bot.on("message", (message): void => {
+        this.bot.on("message", async (message): Promise<void> => {
             const chatId = message.chat.id;
             const text = message.text || "";
 
@@ -47,7 +48,7 @@ export class StopCommand extends Command {
                     return;
                 }
 
-                const trackedMessages = this.getLastMessages(chatId);
+                const trackedMessages = await this.getTrackedMessages(chatId);
 
                 if (typeof trackedMessages[0] !== "undefined") {
                     this.bot.editMessageText(prompts.stop.ask, {
@@ -62,7 +63,7 @@ export class StopCommand extends Command {
                 });
 
                 this.waitingStates.delete(chatId);
-                this.clearLastMessages(chatId);
+                this.deleteTrackedMessages(chatId);
             }
         });
     }

@@ -14,11 +14,10 @@ export class DrinkWaterCommand extends Command {
             parse_mode: "HTML"
         });
 
-    private messageSnooze = (chatId: number): Promise<number | void> => this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { parse_mode: "HTML", ...inlineKeyboardSnooze })
-        .then(lastMessage => {
-            const trackedMessages = this.getLastMessages(chatId);
+    private messageSnooze = (chatId: number, trackedMessages: MessagesIdsTuple): Promise<number | void> => this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { parse_mode: "HTML", ...inlineKeyboardSnooze })
+        .then(async (lastMessage): Promise<void> => {
             trackedMessages[1] = lastMessage.message_id;
-            this.setLastMessages(chatId, trackedMessages);
+            await this.setTrackedMessages(chatId, trackedMessages);
         });
 
     constructor(
@@ -34,11 +33,12 @@ export class DrinkWaterCommand extends Command {
     public handle(): void {
         this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
+
             if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
                 return;
             }
 
-            const trackedMessages = this.getLastMessages(chatId);
+            const trackedMessages = await this.getTrackedMessages(chatId);
 
             await this.redis.sadd("notification-queue", chatId);
             this.waitingStates.set(chatId, WaitingStates.DRINK);
@@ -55,13 +55,13 @@ export class DrinkWaterCommand extends Command {
 
             if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
                 if (text === prompts.drinkWater.keyboardChoice) {
-                    const trackedMessages = this.getLastMessages(chatId);
+                    const trackedMessages = await this.getTrackedMessages(chatId);
 
                     this.waitingStates.set(chatId, WaitingStates.CHOICE);
 
                     if (typeof trackedMessages[1] !== "undefined") {
                         this.bot.deleteMessage(chatId, trackedMessages[1]);
-                        this.clearLastMessages(chatId);
+                        await this.deleteTrackedMessages(chatId);
                     }
 
                     this.bot.sendMessage(chatId, prompts.drinkWater.choice, {
@@ -71,7 +71,7 @@ export class DrinkWaterCommand extends Command {
                         parse_mode: "HTML"
                     }).then(lastMessage => {
                         trackedMessages[0] = lastMessage.message_id;
-                        this.messageSnooze(chatId);
+                        this.messageSnooze(chatId, trackedMessages);
                     });
                 }
 
@@ -93,13 +93,13 @@ export class DrinkWaterCommand extends Command {
             ...options
         }).then(lastMessage => {
             trackedMessages[0] = lastMessage.message_id;
-            this.messageSnooze(chatId);
+            this.messageSnooze(chatId, trackedMessages);
         });
     }
 
     private async keyboardChoiseWater(chatId: number, message: TelegramBot.Message): Promise<void> {
         const text = message?.text || "";
-        const trackedMessages = this.getLastMessages(chatId);
+        const trackedMessages = await this.getTrackedMessages(chatId);
 
         if (!isValidVolume(text)) {
             this.bot.deleteMessage(chatId, message.message_id);
@@ -113,7 +113,6 @@ export class DrinkWaterCommand extends Command {
                     parse_mode: "HTML"
                 }).catch(() => { });
             }
-
             return;
         }
 
@@ -127,15 +126,15 @@ export class DrinkWaterCommand extends Command {
 
         this.waitingStates.delete(chatId);
         await this.redis.sremove("notification-queue", chatId);
-        this.clearLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
     }
 
     private async userChoiseWater(chatId: number, message: TelegramBot.Message): Promise<void> {
         const text = message.text || "";
-        const trackedMessages = this.getLastMessages(chatId);
+        const trackedMessages = await this.getTrackedMessages(chatId);
 
         if (!isValidVolume(text)) {
-            if (typeof trackedMessages[1] !== "undefined") {
+            if (text !== prompts.drinkWater.keyboardChoice && typeof trackedMessages[1] !== "undefined") {
                 this.bot.deleteMessage(chatId, message.message_id);
                 this.bot.editMessageText(`${prompts.drinkWater.error}
                 \n${prompts.drinkWater.snooze}`, {
@@ -158,7 +157,7 @@ export class DrinkWaterCommand extends Command {
 
         this.waitingStates.delete(chatId);
         await this.redis.sremove("notification-queue", chatId);
-        this.clearLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
     }
 
     private async updateWaterGoal(): Promise<void> {

@@ -50,7 +50,8 @@ export class ParametersCommand extends Command {
                     remove_keyboard: true,
                     ...inlineKeyboardCancel.reply_markup
                 }
-            }).then(lastMessage => this.setLastMessages(chatId, [lastMessage.message_id, undefined]));
+            }).then(async (lastMessage): Promise<void> =>
+                await this.setTrackedMessages(chatId, [lastMessage.message_id, undefined]));
         });
 
         this.bot.onText(/^\/info_parameters$/, async (message): Promise<void> => {
@@ -102,7 +103,7 @@ export class ParametersCommand extends Command {
             goal: undefined
         });
 
-        const trackedMessages = this.getLastMessages(chatId);
+        const trackedMessages = await this.getTrackedMessages(chatId);
 
         this.bot.sendMessage(chatId, await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.weight : prompts.addParameters.weight, {
             reply_markup: {
@@ -113,14 +114,14 @@ export class ParametersCommand extends Command {
                 remove_keyboard: true
             },
             parse_mode: "HTML"
-        }).then(lastMessage => {
+        }).then(async (lastMessage): Promise<void> => {
             trackedMessages[0] = lastMessage.message_id;
-            this.setLastMessages(chatId, trackedMessages);
+            await this.setTrackedMessages(chatId, trackedMessages);
         });
     }
 
     private async handleWeight(chatId: number, message: TelegramBot.Message): Promise<void> {
-        let trackedMessages = this.getLastMessages(chatId);
+        let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
             this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.weight : prompts.addParameters.weight, {
@@ -144,9 +145,9 @@ export class ParametersCommand extends Command {
                         ]
                     },
                     parse_mode: "HTML"
-                }).then(lastMessage => {
+                }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
-                    this.setLastMessages(chatId, trackedMessages);
+                    await this.setTrackedMessages(chatId, trackedMessages);
                 });
             }
             return;
@@ -158,8 +159,8 @@ export class ParametersCommand extends Command {
 
         this.waitingStates.set(chatId, WaitingStates.CITY);
 
-        this.clearLastMessages(chatId);
-        trackedMessages = this.getLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
+        trackedMessages = await this.getTrackedMessages(chatId);
 
         const userProvidedData = this.userProvidedData.get(chatId);
 
@@ -178,14 +179,14 @@ export class ParametersCommand extends Command {
                 ]
             },
             parse_mode: "HTML"
-        }).then(lastMessage => {
+        }).then(async (lastMessage): Promise<void> => {
             trackedMessages[0] = lastMessage.message_id;
-            this.setLastMessages(chatId, trackedMessages);
+            await this.setTrackedMessages(chatId, trackedMessages);
         });;
     }
 
     private async handleCity(chatId: number, message: TelegramBot.Message): Promise<void> {
-        let trackedMessages = this.getLastMessages(chatId);
+        let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
             this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.city : prompts.addParameters.city, {
@@ -208,9 +209,9 @@ export class ParametersCommand extends Command {
                         ]
                     },
                     parse_mode: "HTML"
-                }).then(lastMessage => {
+                }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
-                    this.setLastMessages(chatId, trackedMessages);
+                    await this.setTrackedMessages(chatId, trackedMessages);
                 });
             }
             return;
@@ -222,8 +223,8 @@ export class ParametersCommand extends Command {
 
         this.waitingStates.set(chatId, WaitingStates.TIME);
 
-        this.clearLastMessages(chatId);
-        trackedMessages = this.getLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
+        trackedMessages = await this.getTrackedMessages(chatId);
 
         const userProvidedData = this.userProvidedData.get(chatId);
 
@@ -242,14 +243,14 @@ export class ParametersCommand extends Command {
                 ]
             },
             parse_mode: "HTML"
-        }).then(lastMessage => {
+        }).then(async (lastMessage): Promise<void> => {
             trackedMessages[0] = lastMessage.message_id;
-            this.setLastMessages(chatId, trackedMessages);
+            await this.setTrackedMessages(chatId, trackedMessages);
         });
     }
 
     private async handleTime(chatId: number, message: TelegramBot.Message): Promise<void> {
-        let trackedMessages = this.getLastMessages(chatId);
+        let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
             this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.time : prompts.addParameters.time, {
@@ -272,9 +273,9 @@ export class ParametersCommand extends Command {
                         ]
                     },
                     parse_mode: "HTML"
-                }).then(lastMessage => {
+                }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
-                    this.setLastMessages(chatId, trackedMessages);
+                    await this.setTrackedMessages(chatId, trackedMessages);
                 });
             }
             return;
@@ -315,15 +316,15 @@ export class ParametersCommand extends Command {
         }
 
         this.waitingStates.delete(chatId);
-        this.clearLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
         // this.editUserParameters.delete(chatId);
         await this.redis.sremove("edit-parameters", chatId);
 
         //this.editUserParameters.has(chatId) ? updateUserParameters : saveUserParameters
     }
 
-    private handleDelete(chatId: number, message: TelegramBot.Message): void {
-        const trackedMessages = this.getLastMessages(chatId);
+    private async handleDelete(chatId: number, message: TelegramBot.Message): Promise<void> {
+        const trackedMessages = await this.getTrackedMessages(chatId);
         const text = message.text || "";
 
         if (text.toLowerCase() !== "да") {
@@ -344,7 +345,7 @@ export class ParametersCommand extends Command {
         this.bot.sendMessage(chatId, prompts.deleteParameters.deleted, {
             parse_mode: "HTML"
         });
-        this.clearLastMessages(chatId);
+        await this.deleteTrackedMessages(chatId);
         this.waitingStates.delete(chatId);
     }
 

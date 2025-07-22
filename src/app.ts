@@ -51,8 +51,8 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
             new CallbackQueryCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
+            new OnMessage(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
             new StartCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
             new ParametersCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),
             new DrinkWaterCommand(this.bot, this.waitingStates, this.lastMessages, this.userProvidedData, this.redis),

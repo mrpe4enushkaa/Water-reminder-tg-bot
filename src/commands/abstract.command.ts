@@ -15,15 +15,55 @@ export abstract class Command {
 
     abstract handle(): void;
 
-    protected getLastMessages(chatId: number): MessagesIdsTuple {
-        return this.lastMessages.get(chatId) || [undefined, undefined];
+
+
+    // protected getLastMessages(chatId: number): MessagesIdsTuple {
+    //     return this.lastMessages.get(chatId) || [undefined, undefined];
+    // }
+
+    // protected setLastMessages(chatId: number, lastMessagesTuple: MessagesIdsTuple): void {
+    //     this.lastMessages.set(chatId, lastMessagesTuple);
+    // }
+
+    // protected clearLastMessages(chatId: number): void {
+    //     this.lastMessages.set(chatId, [undefined, undefined]);
+    // }
+
+
+
+    protected async setWaitingState(chatId: number, state: WaitingStates): Promise<void> {
+        await this.redis.set(`waiting-state:${chatId}`, state);
     }
 
-    protected setLastMessages(chatId: number, lastMessagesTuple: MessagesIdsTuple): void {
-        this.lastMessages.set(chatId, lastMessagesTuple);
+    protected async getWaitingState(chatId: number): Promise<WaitingStates | undefined> {
+        const data = await this.redis.get(`waiting-state:${chatId}`);
+        if (!data) return undefined;
+        const state = parseInt(data);
+        return isNaN(state) ? undefined : state;
     }
 
-    protected clearLastMessages(chatId: number): void {
-        this.lastMessages.set(chatId, [undefined, undefined]);
+    protected async deleteWaitingState(chatId: number): Promise<void> {
+        await this.redis.delete(`waiting-state:${chatId}`);
+    }
+
+    protected async setTrackedMessages(chatId: number, id: MessagesIdsTuple): Promise<void> {
+        const data: Record<string, string> = {
+            firstMessageId: String(id[0]),
+            secondMessageId: String(id[1])
+        }
+        await this.redis.hset(`tracked-messages:${chatId}`, data);
+    }
+
+    protected async getTrackedMessages(chatId: number): Promise<MessagesIdsTuple> {
+        const data = await this.redis.hget(`tracked-messages:${chatId}`);
+        let firstMessageId: number | undefined = parseInt(data.firstMessageId);
+        let secondMessageId: number | undefined = parseInt(data.secondMessageId);
+        if (isNaN(firstMessageId)) firstMessageId = undefined;
+        if (isNaN(secondMessageId)) secondMessageId = undefined;
+        return [firstMessageId, secondMessageId];
+    }
+
+    protected async deleteTrackedMessages(chatId: number): Promise<void> {
+        await this.redis.delete(`tracked-messages:${chatId}`);
     }
 }
