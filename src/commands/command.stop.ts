@@ -1,9 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
-import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
-import { isNotificationQueue } from "../utils/validators";
 import { inlineKeyboardCancel } from "../utils/reply-markups";
 import { prompts } from "../utils/prompts";
 import { RedisService } from "../databases/redis/redis.service";
@@ -11,21 +9,20 @@ import { RedisService } from "../databases/redis/redis.service";
 export class StopCommand extends Command {
     constructor(
         bot: TelegramBot,
-        waitingStates: Map<number, WaitingStates>,
-        lastMessages: Map<number, MessagesIdsTuple>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, userProvidedData, redis);
+        super(bot, userProvidedData, redis);
     }
 
     public handle(): void {
         this.bot.onText(/^\/stop$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
+            const state = await this.getWaitingState(chatId);
 
-            if (await isNotificationQueue(chatId, this.redis) === 1) return;
+            if (await this.getWaitingState(chatId)) return;
 
-            this.waitingStates.set(chatId, WaitingStates.STOP);
+            await this.setWaitingState(chatId, WaitingStates.STOP);
 
             this.bot.sendMessage(chatId, prompts.stop.ask, {
                 ...inlineKeyboardCancel,
@@ -42,7 +39,7 @@ export class StopCommand extends Command {
             const chatId = message.chat.id;
             const text = message.text || "";
 
-            if (this.waitingStates.get(chatId) === WaitingStates.STOP) {
+            if (await this.getWaitingState(chatId) === WaitingStates.STOP) {
                 if (text.toLocaleLowerCase() !== "остановить") {
                     this.bot.deleteMessage(chatId, message.message_id);
                     return;
@@ -62,8 +59,8 @@ export class StopCommand extends Command {
                     parse_mode: "HTML"
                 });
 
-                this.waitingStates.delete(chatId);
-                this.deleteTrackedMessages(chatId);
+                await this.deleteWaitingState(chatId);
+                await this.deleteTrackedMessages(chatId);
             }
         });
     }

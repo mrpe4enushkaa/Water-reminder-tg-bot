@@ -22,26 +22,21 @@ export class DrinkWaterCommand extends Command {
 
     constructor(
         bot: TelegramBot,
-        waitingStates: Map<number, WaitingStates>,
-        lastMessages: Map<number, MessagesIdsTuple>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, userProvidedData, redis);
+        super(bot, userProvidedData, redis);
     }
 
     public handle(): void {
         this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
 
-            if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
-                return;
-            }
+            if (await this.getWaitingState(chatId)) return;
 
             const trackedMessages = await this.getTrackedMessages(chatId);
 
-            await this.redis.sadd("notification-queue", chatId);
-            this.waitingStates.set(chatId, WaitingStates.DRINK);
+            await this.setWaitingState(chatId, WaitingStates.DRINK);
 
             this.startMessage(chatId, trackedMessages, prompts.drinkWater.timeToDrink, {
                 ...keyboardVolumeOptions,
@@ -53,11 +48,11 @@ export class DrinkWaterCommand extends Command {
             const chatId = message.chat.id;
             const text = message.text || "";
 
-            if (this.waitingStates.get(chatId) === WaitingStates.DRINK || this.waitingStates.get(chatId) === WaitingStates.CHOICE) {
+            if (await this.getWaitingState(chatId) === WaitingStates.DRINK || await this.getWaitingState(chatId) === WaitingStates.CHOICE) {
                 if (text === prompts.drinkWater.keyboardChoice) {
                     const trackedMessages = await this.getTrackedMessages(chatId);
 
-                    this.waitingStates.set(chatId, WaitingStates.CHOICE);
+                    await this.setWaitingState(chatId, WaitingStates.CHOICE);
 
                     if (typeof trackedMessages[1] !== "undefined") {
                         this.bot.deleteMessage(chatId, trackedMessages[1]);
@@ -75,7 +70,7 @@ export class DrinkWaterCommand extends Command {
                     });
                 }
 
-                switch (this.waitingStates.get(chatId)) {
+                switch (await this.getWaitingState(chatId)) {
                     case WaitingStates.DRINK:
                         await this.keyboardChoiseWater(chatId, message);
                         break;
@@ -124,8 +119,7 @@ export class DrinkWaterCommand extends Command {
 
         this.messageVolume(chatId, volume);
 
-        this.waitingStates.delete(chatId);
-        await this.redis.sremove("notification-queue", chatId);
+        await this.deleteWaitingState(chatId);
         await this.deleteTrackedMessages(chatId);
     }
 
@@ -155,8 +149,7 @@ export class DrinkWaterCommand extends Command {
             this.bot.deleteMessage(chatId, trackedMessages[1]);
         }
 
-        this.waitingStates.delete(chatId);
-        await this.redis.sremove("notification-queue", chatId);
+        await this.deleteWaitingState(chatId);
         await this.deleteTrackedMessages(chatId);
     }
 

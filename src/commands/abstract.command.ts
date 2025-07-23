@@ -7,28 +7,11 @@ import { RedisService } from "../databases/redis/redis.service";
 export abstract class Command {
     constructor(
         protected bot: TelegramBot,
-        protected waitingStates: Map<number, WaitingStates>,
-        private lastMessages: Map<number, MessagesIdsTuple>,
         protected userProvidedData: Map<number, UserProvidedData>,
         protected redis: RedisService
     ) { }
 
     abstract handle(): void;
-
-
-
-    // protected getLastMessages(chatId: number): MessagesIdsTuple {
-    //     return this.lastMessages.get(chatId) || [undefined, undefined];
-    // }
-
-    // protected setLastMessages(chatId: number, lastMessagesTuple: MessagesIdsTuple): void {
-    //     this.lastMessages.set(chatId, lastMessagesTuple);
-    // }
-
-    // protected clearLastMessages(chatId: number): void {
-    //     this.lastMessages.set(chatId, [undefined, undefined]);
-    // }
-
 
 
     protected async setWaitingState(chatId: number, state: WaitingStates): Promise<void> {
@@ -65,5 +48,18 @@ export abstract class Command {
 
     protected async deleteTrackedMessages(chatId: number): Promise<void> {
         await this.redis.delete(`tracked-messages:${chatId}`);
+    }
+
+    protected async setEditParametersFlag(chatId: number): Promise<void> {
+        await this.redis.sadd(`edit-parameters`, chatId);
+    }
+
+    protected async hasEditParametersFlag(chatId: number): Promise<boolean> {
+        const data = await this.redis.sismember(`edit-parameters`, chatId);
+        return data === 1;
+    }
+
+    protected async clearEditParametersFlag(chatId: number): Promise<void> {
+        await this.redis.sremove(`edit-parameters`, chatId);
     }
 }

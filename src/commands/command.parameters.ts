@@ -1,48 +1,45 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
-import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { WaitingStates } from "../models/waiting-states.type";
 import { UserProvidedData } from "../models/user-provided-data.type";
-import { isValidWeight, isValidCity, isValidTime, isNotificationQueue } from "../utils/validators";
+import { isValidWeight, isValidCity, isValidTime } from "../utils/validators";
 import { prompts } from "../utils/prompts";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
-import { CallbackData } from "../models/callback-data.enum";
 import { RedisService } from "../databases/redis/redis.service";
 
 export class ParametersCommand extends Command {
     constructor(
         bot: TelegramBot,
-        waitingStates: Map<number, WaitingStates>,
-        lastMessages: Map<number, MessagesIdsTuple>,
         userProvidedData: Map<number, UserProvidedData>,
         redis: RedisService
     ) {
-        super(bot, waitingStates, lastMessages, userProvidedData, redis);
+        super(bot, userProvidedData, redis);
     }
 
     public handle(): void {
-        this.bot.onText(/^\/add_parameters$/, (message): void => {
+        this.bot.onText(/^\/add_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
 
             //if (get userProvidedData from mongo or redis) return;
-            this.startMessage(chatId);
+            await this.startMessage(chatId);
         });
 
-        this.bot.onText(/^\/edit_parameters$/, (message): void => {
+        this.bot.onText(/^\/edit_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
             //if (!get userProvidedData from mongo or redis) return;
             // this.editUserParameters.add(chatId);
-            this.redis.sadd("edit-parameters", chatId.toString());
 
-            this.startMessage(chatId);
+            await this.setEditParametersFlag(chatId);
+            await this.startMessage(chatId);
         });
 
         this.bot.onText(/^\/delete_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
 
-            if (await isNotificationQueue(chatId, this.redis) === 1) return;
+            if (await this.getWaitingState(chatId)) return;
+
             //if (!get userProvidedData from mongo or redis) return;
-            this.waitingStates.set(chatId, WaitingStates.DELETE);
+            await this.setWaitingState(chatId, WaitingStates.DELETE);
 
             this.bot.sendMessage(chatId, prompts.deleteParameters.confirm, {
                 parse_mode: "HTML",
@@ -57,7 +54,7 @@ export class ParametersCommand extends Command {
         this.bot.onText(/^\/info_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
 
-            if (await isNotificationQueue(chatId, this.redis) === 1) return;
+            if (await this.getWaitingState(chatId)) return;
             //if (!get userProvidedData from mongo or redis) return;
 
             const userParameters = this.userProvidedData.get(chatId);
@@ -75,7 +72,7 @@ export class ParametersCommand extends Command {
         this.bot.on("message", async (message): Promise<void> => {
             const chatId = message.chat.id;
 
-            switch (this.waitingStates.get(chatId)) {
+            switch (await this.getWaitingState(chatId)) {
                 case WaitingStates.WEIGHT:
                     await this.handleWeight(chatId, message);
                     break;
@@ -92,9 +89,9 @@ export class ParametersCommand extends Command {
     }
 
     private async startMessage(chatId: number): Promise<void> {
-        if (await isNotificationQueue(chatId, this.redis) === 1) return;
+        if (await this.getWaitingState(chatId)) return;
 
-        this.waitingStates.set(chatId, WaitingStates.WEIGHT);
+        await this.setWaitingState(chatId, WaitingStates.WEIGHT);
 
         this.userProvidedData.set(chatId, {
             weight: undefined,
@@ -105,10 +102,10 @@ export class ParametersCommand extends Command {
 
         const trackedMessages = await this.getTrackedMessages(chatId);
 
-        this.bot.sendMessage(chatId, await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.weight : prompts.addParameters.weight, {
+        this.bot.sendMessage(chatId, await this.hasEditParametersFlag(chatId) ? prompts.editParameters.weight : prompts.addParameters.weight, {
             reply_markup: {
                 inline_keyboard: [
-                    ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                    ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                     ...inlineKeyboardCancel.reply_markup.inline_keyboard
                 ],
                 remove_keyboard: true
@@ -124,7 +121,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.weight : prompts.addParameters.weight, {
+            this.bot.editMessageText(await this.hasEditParametersFlag(chatId) ? prompts.editParameters.weight : prompts.addParameters.weight, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -140,7 +137,7 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctWeight, {
                     reply_markup: {
                         inline_keyboard: [
-                            ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                            ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
@@ -157,7 +154,7 @@ export class ParametersCommand extends Command {
             this.bot.deleteMessage(chatId, trackedMessages[1]);
         }
 
-        this.waitingStates.set(chatId, WaitingStates.CITY);
+        await this.setWaitingState(chatId, WaitingStates.CITY);
 
         await this.deleteTrackedMessages(chatId);
         trackedMessages = await this.getTrackedMessages(chatId);
@@ -171,10 +168,10 @@ export class ParametersCommand extends Command {
             goal: parseFloat((weight * 0.035).toFixed(2)),
         });
 
-        this.bot.sendMessage(chatId, await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.city : prompts.addParameters.city, {
+        this.bot.sendMessage(chatId, await this.hasEditParametersFlag(chatId) ? prompts.editParameters.city : prompts.addParameters.city, {
             reply_markup: {
                 inline_keyboard: [
-                    ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                    ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                     ...inlineKeyboardCancel.reply_markup.inline_keyboard
                 ]
             },
@@ -189,7 +186,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.city : prompts.addParameters.city, {
+            this.bot.editMessageText(await this.hasEditParametersFlag(chatId) ? prompts.editParameters.city : prompts.addParameters.city, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -204,7 +201,7 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctCity, {
                     reply_markup: {
                         inline_keyboard: [
-                            ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                            ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
@@ -221,7 +218,7 @@ export class ParametersCommand extends Command {
             this.bot.deleteMessage(chatId, trackedMessages[1]);
         }
 
-        this.waitingStates.set(chatId, WaitingStates.TIME);
+        await this.setWaitingState(chatId, WaitingStates.TIME);
 
         await this.deleteTrackedMessages(chatId);
         trackedMessages = await this.getTrackedMessages(chatId);
@@ -235,10 +232,10 @@ export class ParametersCommand extends Command {
             goal: userProvidedData?.goal
         });
 
-        this.bot.sendMessage(chatId, await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.time : prompts.addParameters.time, {
+        this.bot.sendMessage(chatId, await this.hasEditParametersFlag(chatId) ? prompts.editParameters.time : prompts.addParameters.time, {
             reply_markup: {
                 inline_keyboard: [
-                    ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                    ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                     ...inlineKeyboardCancel.reply_markup.inline_keyboard
                 ]
             },
@@ -253,7 +250,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = await this.getTrackedMessages(chatId);
 
         if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
-            this.bot.editMessageText(await this.redis.sismember("edit-parameters", chatId) === 1 ? prompts.editParameters.time : prompts.addParameters.time, {
+            this.bot.editMessageText(await this.hasEditParametersFlag(chatId) ? prompts.editParameters.time : prompts.addParameters.time, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
                 parse_mode: "HTML"
@@ -268,7 +265,7 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctTime, {
                     reply_markup: {
                         inline_keyboard: [
-                            ...(await this.redis.sismember("edit-parameters", chatId) === 1 ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
+                            ...(await this.hasEditParametersFlag(chatId) ? inlineKeyboardContinue.reply_markup.inline_keyboard : []),
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
@@ -299,7 +296,7 @@ export class ParametersCommand extends Command {
         const userData = this.userProvidedData.get(chatId);
 
         if (typeof userData !== "undefined") {
-            if (await this.redis.sismember("edit-parameters", chatId) === 1) {
+            if (await this.hasEditParametersFlag(chatId)) {
                 this.bot.sendMessage(chatId, prompts.editParameters.confirm(userData), {
                     parse_mode: "HTML",
                 });
@@ -310,15 +307,14 @@ export class ParametersCommand extends Command {
                 parse_mode: "HTML"
             });
         } else {
-            this.bot.sendMessage(chatId, prompts.error(await this.redis.sismember("edit-parameters", chatId) === 1 ? "/edit_parameters" : "/add_parameters"), {
+            this.bot.sendMessage(chatId, prompts.error(await this.hasEditParametersFlag(chatId) ? "/edit_parameters" : "/add_parameters"), {
                 parse_mode: "HTML"
             });
         }
 
-        this.waitingStates.delete(chatId);
+        await this.deleteWaitingState(chatId);
         await this.deleteTrackedMessages(chatId);
-        // this.editUserParameters.delete(chatId);
-        await this.redis.sremove("edit-parameters", chatId);
+        await this.clearEditParametersFlag(chatId);
 
         //this.editUserParameters.has(chatId) ? updateUserParameters : saveUserParameters
     }
@@ -345,8 +341,9 @@ export class ParametersCommand extends Command {
         this.bot.sendMessage(chatId, prompts.deleteParameters.deleted, {
             parse_mode: "HTML"
         });
+
         await this.deleteTrackedMessages(chatId);
-        this.waitingStates.delete(chatId);
+        await this.deleteWaitingState(chatId);
     }
 
     private async saveUserParameters(data: UserProvidedData): Promise<void> {
