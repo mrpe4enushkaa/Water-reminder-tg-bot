@@ -45,7 +45,7 @@ export class ParametersCommand extends Command {
 
         this.bot.onText(/^\/delete_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
-            
+
             if (await this.getWaitingState(chatId)) return;
 
             const userData = await this.getUserData(chatId);
@@ -54,7 +54,7 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, "Чтобы удалить данные, их нужно добавить)");
                 return;
             }
-            
+
             await this.setWaitingState(chatId, WaitingStates.DELETE);
 
             this.bot.sendMessage(chatId, prompts.deleteParameters.confirm, {
@@ -159,7 +159,8 @@ export class ParametersCommand extends Command {
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
-                    parse_mode: "HTML"
+                    parse_mode: "HTML",
+                    disable_notification: true
                 }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
                     await this.setTrackedMessages(chatId, trackedMessages);
@@ -224,7 +225,8 @@ export class ParametersCommand extends Command {
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
-                    parse_mode: "HTML"
+                    parse_mode: "HTML",
+                    disable_notification: true
                 }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
                     await this.setTrackedMessages(chatId, trackedMessages);
@@ -271,7 +273,7 @@ export class ParametersCommand extends Command {
         let trackedMessages = await this.getTrackedMessages(chatId);
         const editFlag = await this.hasEditParametersFlag(chatId);
 
-        if (typeof trackedMessages[0] !== "undefined") {
+        if (typeof trackedMessages[0] !== "undefined" && typeof trackedMessages[1] === "undefined") {
             this.bot.editMessageText(editFlag ? prompts.editParameters.time : prompts.addParameters.time, {
                 chat_id: chatId,
                 message_id: trackedMessages[0],
@@ -291,7 +293,8 @@ export class ParametersCommand extends Command {
                             ...inlineKeyboardCancel.reply_markup.inline_keyboard
                         ]
                     },
-                    parse_mode: "HTML"
+                    parse_mode: "HTML",
+                    disable_notification: true
                 }).then(async (lastMessage): Promise<void> => {
                     trackedMessages[1] = lastMessage.message_id;
                     await this.setTrackedMessages(chatId, trackedMessages);

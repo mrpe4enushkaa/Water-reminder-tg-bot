@@ -15,11 +15,12 @@ export class DrinkWaterCommand extends Command {
             parse_mode: "HTML"
         });
 
-    private messageSnooze = (chatId: number, trackedMessages: MessagesIdsTuple): Promise<number | void> => this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { parse_mode: "HTML", ...inlineKeyboardSnooze })
-        .then(async (lastMessage): Promise<void> => {
-            trackedMessages[1] = lastMessage.message_id;
-            await this.setTrackedMessages(chatId, trackedMessages);
-        });
+    private messageSnooze = (chatId: number, trackedMessages: MessagesIdsTuple): Promise<number | void> =>
+        this.bot.sendMessage(chatId, prompts.drinkWater.snooze, { parse_mode: "HTML", ...inlineKeyboardSnooze })
+            .then(async (lastMessage): Promise<void> => {
+                trackedMessages[1] = lastMessage.message_id;
+                await this.setTrackedMessages(chatId, trackedMessages);
+            });
 
     constructor(
         bot: TelegramBot,
@@ -32,7 +33,7 @@ export class DrinkWaterCommand extends Command {
     public handle(): void {
         this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
-            
+
             if (await this.getWaitingState(chatId)) return;
 
             const userData = await this.getUserData(chatId);
@@ -48,7 +49,8 @@ export class DrinkWaterCommand extends Command {
 
             this.startMessage(chatId, trackedMessages, prompts.drinkWater.timeToDrink, {
                 ...keyboardVolumeOptions,
-                parse_mode: "HTML"
+                parse_mode: "HTML",
+                disable_notification: true
             });
         });
 
@@ -71,7 +73,8 @@ export class DrinkWaterCommand extends Command {
                         reply_markup: {
                             remove_keyboard: true
                         },
-                        parse_mode: "HTML"
+                        parse_mode: "HTML",
+                        disable_notification: true
                     }).then(lastMessage => {
                         trackedMessages[0] = lastMessage.message_id;
                         this.messageSnooze(chatId, trackedMessages);
@@ -113,7 +116,7 @@ export class DrinkWaterCommand extends Command {
                     chat_id: chatId,
                     message_id: trackedMessages[1],
                     reply_markup: inlineKeyboardSnooze.reply_markup as TelegramBot.InlineKeyboardMarkup,
-                    parse_mode: "HTML"
+                    parse_mode: "HTML",
                 }).catch(() => { });
             }
             return;
