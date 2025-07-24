@@ -1,4 +1,4 @@
-import { UserProvidedData } from "../models/user-provided-data.type";
+import { UserData } from "../models/user-data.type";
 
 export const prompts = {
     start: {
@@ -30,11 +30,11 @@ export const prompts = {
             ❗ <b>Введите время в правильном формате</b>
             \nФормат: <b>HH:MM - HH:MM</b>`,
 
-        end: (data: UserProvidedData): string => `
+        end: (data: UserData): string => `
             ✅ <b>Отлично! Данные сохранены:</b>
             \n💪 Вес: <b>${data.weight} кг</b>
             \n🏙️ Город: <b>${data.city}</b>
-            \n🕰️ Время бодрствования: <b>${data.time[0]} – ${data.time[1]}</b>
+            \n🕰️ Время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
             \n💧 Суточная норма: <b>${data.goal} л</b>
             \nЯ начну напоминать тебе пить воду в течение дня! 🔔
         `
@@ -52,11 +52,11 @@ export const prompts = {
             \nФормат: <b>HH:MM - HH:MM</b>
             \nНапример: <b>08:00 - 23:00</b>`,
 
-        confirm: (data: UserProvidedData): string => `
+        confirm: (data: UserData): string => `
             ✅ <b>Готово! Данные обновлены:</b>
             \n💪 Новый вес: <b>${data.weight} кг</b>
             \n🏙️ Новый город: <b>${data.city}</b>
-            \n🕰️ Новое время бодрствования: <b>${data.time[0]} – ${data.time[1]}</b>
+            \n🕰️ Новое время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
             \n💧 Новая суточная норма: <b>${data.goal} л</b>
             \nЯ буду напоминать тебе пить воду в соответствии с новыми параметрами 🔔`,
 
@@ -72,11 +72,11 @@ export const prompts = {
             🗑️ <b>Данные удалены.</b>`
     },
 
-    info_parameters: (data: UserProvidedData): string => `
+    info_parameters: (data: UserData): string => `
         📋 <b>Твои текущие параметры:</b>
         \n💪 Вес: <b>${data.weight} кг</b>
         \n🏙️ Город: <b>${data.city}</b>
-        \n🕰️ Время бодрствования: <b>${data.time[0]} – ${data.time[1]}</b>
+        \n🕰️ Время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
         \n💧 Суточная норма: <b>${data.goal} л</b>`,
 
     stop: {

@@ -5,8 +5,9 @@ import { keyboardVolumeOptions, inlineKeyboardSnooze } from "../utils/reply-mark
 import { WaitingStates } from "../models/waiting-states.type";
 import { MessagesIdsTuple } from "../models/messages-ids.type";
 import { isValidVolume } from "../utils/validators";
-import { UserProvidedData } from "../models/user-provided-data.type";
 import { RedisService } from "../databases/redis/redis.service";
+import mongoose from "mongoose";
+import { UserData } from "../models/user-data.type";
 
 export class DrinkWaterCommand extends Command {
     private messageVolume = (chatId: number, volume: number): Promise<TelegramBot.Message> =>
@@ -22,10 +23,10 @@ export class DrinkWaterCommand extends Command {
 
     constructor(
         bot: TelegramBot,
-        userProvidedData: Map<number, UserProvidedData>,
+        userSchema: mongoose.Model<UserData>,
         redis: RedisService
     ) {
-        super(bot, userProvidedData, redis);
+        super(bot, userSchema, redis);
     }
 
     public handle(): void {

@@ -1,4 +1,4 @@
-import { UserModel } from "../models/user-model.type";
+import { UserData } from "../models/user-data.type";
 
 export const isValidWeight = (text: string) =>
     /^(\d+(\.\d+)?)(\s?кг)?$/i.test(text.trim()) && parseFloat(text) > 0;
@@ -12,9 +12,9 @@ export const isValidTime = (text: string) =>
 export const isValidVolume = (text: string) =>
     /^(\d+)(\s?мл)?$/i.test(text.trim()) && parseFloat(text) > 0;
 
-export const isValidUser = (data: Partial<UserModel>): data is UserModel => {
+export const isValidUser = (data: Partial<UserData>): data is UserData => {
     return (
-        typeof data.telegramId === "number" &&
+        typeof data.telegramChatId === "number" &&
         typeof data.weight === "number" &&
         typeof data.city === "string" &&
         Array.isArray(data.time) &&

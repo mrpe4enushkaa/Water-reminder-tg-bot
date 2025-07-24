@@ -1,22 +1,23 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 import { prompts } from "../utils/prompts";
-import { UserProvidedData } from "../models/user-provided-data.type";
 import { RedisService } from "../databases/redis/redis.service";
+import mongoose from "mongoose";
+import { UserData } from "../models/user-data.type";
 
 export class StartCommand extends Command {
     constructor(
         bot: TelegramBot,
-        userProvidedData: Map<number, UserProvidedData>,
+        userSchema: mongoose.Model<UserData>,
         redis: RedisService
     ) {
-        super(bot, userProvidedData, redis);
+        super(bot, userSchema, redis);
     }
 
     public handle(): void {
         this.bot.onText(/^\/start$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
-            
+
             if (await this.getWaitingState(chatId)) return;
 
             this.bot.sendMessage(chatId, prompts.start.welcome(message.chat.username), {

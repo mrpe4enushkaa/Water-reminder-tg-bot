@@ -1,18 +1,19 @@
 import TelegramBot from "node-telegram-bot-api";
 import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
-import { UserProvidedData } from "../models/user-provided-data.type";
 import { inlineKeyboardCancel } from "../utils/reply-markups";
 import { prompts } from "../utils/prompts";
 import { RedisService } from "../databases/redis/redis.service";
+import mongoose from "mongoose";
+import { UserData } from "../models/user-data.type";
 
 export class StopCommand extends Command {
     constructor(
         bot: TelegramBot,
-        userProvidedData: Map<number, UserProvidedData>,
+        userSchema: mongoose.Model<UserData>,
         redis: RedisService
     ) {
-        super(bot, userProvidedData, redis);
+        super(bot, userSchema, redis);
     }
 
     public handle(): void {

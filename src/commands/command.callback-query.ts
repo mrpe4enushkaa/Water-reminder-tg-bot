@@ -4,16 +4,17 @@ import { prompts } from "../utils/prompts";
 import { Command } from "./abstract.command";
 import { WaitingStates } from "../models/waiting-states.type";
 import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-markups";
-import { UserProvidedData } from "../models/user-provided-data.type";
 import { RedisService } from "../databases/redis/redis.service";
+import { UserData } from "../models/user-data.type";
+import mongoose from "mongoose";
 
 export class CallbackQueryCommand extends Command {
     constructor(
         bot: TelegramBot,
-        userProvidedData: Map<number, UserProvidedData>,
+        userSchema: mongoose.Model<UserData>,
         redis: RedisService
     ) {
-        super(bot, userProvidedData, redis);
+        super(bot, userSchema, redis);
     }
 
     public handle(): void {
@@ -70,20 +71,23 @@ export class CallbackQueryCommand extends Command {
                             }
 
                             if (nextState > 3) {
-                                const userParameters = this.userProvidedData.get(chatId);
+                                let intermediateUserData = await this.getIntermediateUserData(chatId);
 
-                                if (userParameters &&
-                                    typeof userParameters.weight === "undefined" &&
-                                    typeof userParameters.city === "undefined" &&
-                                    userParameters.time.every(value => typeof value === "undefined")) {
+                                if (intermediateUserData &&
+                                    typeof intermediateUserData.weight === "undefined" &&
+                                    typeof intermediateUserData.city === "undefined" &&
+                                    typeof intermediateUserData.time === "undefined") {
                                     this.bot.editMessageText(prompts.editParameters.cancel, {
                                         chat_id: chatId,
                                         message_id: trackedMessages[0],
                                         parse_mode: "HTML"
                                     });
                                 } else {
-                                    if (typeof userParameters !== "undefined") {
-                                        this.bot.editMessageText(prompts.editParameters.confirm(userParameters), {
+                                    await this.updateUserData(intermediateUserData);
+                                    const userData = await this.getUserData(chatId);
+                                    console.log(userData);
+                                    if (typeof userData !== "undefined") {
+                                        this.bot.editMessageText(prompts.editParameters.confirm(userData), {
                                             chat_id: chatId,
                                             message_id: trackedMessages[0],
                                             parse_mode: "HTML"
@@ -91,6 +95,7 @@ export class CallbackQueryCommand extends Command {
                                     }
                                 }
 
+                                await this.deleteIntermediateUserData(chatId);
                                 await this.clearEditParametersFlag(chatId);
                                 await this.deleteWaitingState(chatId);
                                 await this.deleteTrackedMessages(chatId);
@@ -115,7 +120,6 @@ export class CallbackQueryCommand extends Command {
                                     });
 
                                     await this.setWaitingState(chatId, nextState);
-                                    // await this.deleteTrackedMessages(chatId);
                                     break;
                                 case WaitingStates.TIME:
                                     this.bot.editMessageText(prompts.editParameters.time, {
@@ -133,9 +137,7 @@ export class CallbackQueryCommand extends Command {
                                         await this.setTrackedMessages(chatId, [message.message_id, undefined]);
                                     });
 
-                                    await this.clearEditParametersFlag(chatId);
                                     await this.setWaitingState(chatId, nextState);
-                                    await this.deleteTrackedMessages(chatId);
                                     break;
                             }
                         }

@@ -1,4 +1,4 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot, { User } from "node-telegram-bot-api";
 import { ConfigService } from "./config/config.service";
 import { RedisService } from "./databases/redis/redis.service";
 import { Command } from "./commands/abstract.command";
@@ -6,12 +6,13 @@ import { CallbackQueryCommand } from "./commands/command.callback-query";
 import { StartCommand } from "./commands/command.start";
 import { ParametersCommand } from "./commands/command.parameters";
 import { DrinkWaterCommand } from "./commands/command.drink-water";
-import { UserProvidedData } from "./models/user-provided-data.type";
 import { HelpCommand } from "./commands/command.help";
 import { TimeCommand } from "./commands/command.time";
 import { ContinueCommand } from "./commands/command.continue";
 import { StopCommand } from "./commands/command.stop";
 import { MongoService } from "./databases/mongo/mongo.service";
+import { UserData } from "./models/user-data.type";
+import mongoose from "mongoose";
 
 class Bot {
     private bot: TelegramBot;
@@ -19,12 +20,27 @@ class Bot {
     private redis: RedisService;
     private commands: Command[] = [];
 
-    private userProvidedData: Map<number, UserProvidedData> = new Map<number, UserProvidedData>;
+    private userSchema : mongoose.Model<UserData>;
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
         this.mongo = new MongoService();
         this.redis = new RedisService();
+        this.userSchema = this.mongo.createSchema<UserData>("Users", {
+            telegramChatId: { type: Number, required: true },
+            weight: { type: Number, required: true },
+            city: { type: String, required: true },
+            time: {
+                type: [String],
+                required: true,
+                validate: {
+                    validator: (value: string[]) => value.length === 2,
+                    message: "The 'time' field must contain exactly two values (for example, ['08:00', '20:00'])"
+                }
+            },
+            goal: { type: Number, required: true },
+            mute: { type: Boolean, required: true }
+        });
     }
 
     private setCommands(): void {
@@ -47,14 +63,14 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new CallbackQueryCommand(this.bot, this.userProvidedData, this.redis),
-            new StartCommand(this.bot, this.userProvidedData, this.redis),
-            new ParametersCommand(this.bot, this.userProvidedData, this.redis),
-            new DrinkWaterCommand(this.bot, this.userProvidedData, this.redis),
-            new HelpCommand(this.bot, this.userProvidedData, this.redis),
-            new TimeCommand(this.bot, this.userProvidedData, this.redis),
-            new ContinueCommand(this.bot, this.userProvidedData, this.redis),
-            new StopCommand(this.bot, this.userProvidedData, this.redis)
+            new CallbackQueryCommand(this.bot, this.userSchema, this.redis),
+            new StartCommand(this.bot, this.userSchema, this.redis),
+            new ParametersCommand(this.bot, this.userSchema, this.redis),
+            new DrinkWaterCommand(this.bot, this.userSchema, this.redis),
+            new HelpCommand(this.bot, this.userSchema, this.redis),
+            new TimeCommand(this.bot, this.userSchema, this.redis),
+            new ContinueCommand(this.bot, this.userSchema, this.redis),
+            new StopCommand(this.bot, this.userSchema, this.redis)
         ];
 
         for (const command of this.commands) {
@@ -63,11 +79,10 @@ class Bot {
     }
 
     public async init(): Promise<void> {
+        await this.mongo.handle();
+        this.redis.handle();
         this.setCommands();
         this.registerCommands();
-        this.redis.handle();
-        await this.mongo.handle();
-        this.mongo.createUsersSchema();
     }
 }
 

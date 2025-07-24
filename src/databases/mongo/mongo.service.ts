@@ -1,12 +1,9 @@
 import mongoose from "mongoose";
 import { config, DotenvParseOutput } from "dotenv";
 import { MongoOptions } from "./mongo.interface";
-import { UserModel } from "../../models/user-model.type";
-import { isValidUser } from "../../utils/validators";
 
 export class MongoService implements MongoOptions {
     private config: DotenvParseOutput;
-    private userModel: mongoose.Model<UserModel> | undefined = undefined;
 
     constructor() {
         const { error, parsed } = config();
@@ -40,72 +37,8 @@ export class MongoService implements MongoOptions {
         console.log("Mongo has been disconnected");
     }
 
-    public createUsersSchema(): void {
-        if (this.userModel) return;
-
-        const userSchema: mongoose.Schema<UserModel> = new mongoose.Schema({
-            telegramId: { type: Number, required: true },
-            weight: { type: Number, required: true },
-            city: { type: String, required: true },
-            time: {
-                type: [String],
-                required: true,
-                validate: {
-                    validator: (value: string[]) => value.length === 2,
-                    message: "The 'time' field must contain exactly two values (for example, ['08:00', '20:00'])"
-                }
-            },
-            goal: { type: Number, required: true },
-            mute: { type: Boolean, required: true }
-        });
-
-        this.userModel = mongoose.model<UserModel>("Users", userSchema);
-        return;
-    }
-
-    public async addUser(data: UserModel): Promise<void> {
-        if (!this.userModel) throw new Error("The 'UserScheme' schema is not initialized");
-        if (!isValidUser(data)) throw new Error("Invalid user data. All fields are required");
-        await this.userModel.create(data);
-    }
-
-    public async editUser(data: UserModel): Promise<void> {
-        if (!this.userModel) throw new Error("The 'UserScheme' schema is not initialized");
-
-        const updateData: Partial<UserModel> = {};
-
-        if (data.weight !== undefined) updateData.weight = data.weight;
-        if (data.city !== undefined) updateData.city = data.city;
-        if (data.time !== undefined) updateData.time = data.time;
-        if (data.goal !== undefined) updateData.goal = data.goal;
-        if (data.mute !== undefined) updateData.mute = data.mute;
-
-        if (Object.keys(updateData).length === 0) return;
-
-        await this.userModel.updateOne(
-            { telegramId: data.telegramId },
-            { $set: updateData }
-        );
-    }
-
-    public async deleteUser(telegramId: number): Promise<void> {
-        if (!this.userModel) throw new Error("The 'UserScheme' schema is not initialized");
-        await this.userModel.deleteOne({ telegramId });
-    }
-
-    public async continueSendPushNotifications(telegramId: number): Promise<void> {
-        if (!this.userModel) throw new Error("The 'UserScheme' schema is not initialized");
-        await this.userModel.updateOne(
-            { telegramId },
-            { $set: { mute: false } }
-        );
-    }
-
-    public async stopSendPushNotifications(telegramId: number): Promise<void> {
-        if (!this.userModel) throw new Error("The 'UserScheme' schema is not initialized");
-        await this.userModel.updateOne(
-            { telegramId },
-            { $set: { mute: true } }
-        );
+    public createSchema<T extends object>(name: string, definition: mongoose.SchemaDefinition<T>): mongoose.Model<T> {
+        const schema: mongoose.Schema<T> = new mongoose.Schema<T>(definition);
+        return mongoose.model<T>(name, schema);
     }
 }
