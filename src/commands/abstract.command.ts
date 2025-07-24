@@ -169,4 +169,10 @@ export abstract class Command {
         const userData = await this.userSchema.findOne({ telegramChatId });
         if (userData) await this.redis.set(`user-data:${telegramChatId}`, userData, this.lifetime);
     }
+
+    protected async getAllUserData(): Promise<UserData[]> {
+        if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
+        const allData = await this.userSchema.find();
+        return allData;
+    }
 }
