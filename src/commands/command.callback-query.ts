@@ -37,9 +37,10 @@ export class CallbackQueryCommand extends Command {
                         this.bot.deleteMessage(chatId, trackedMessages[1]);
                     }
 
+                    await this.deleteIntermediateUserData(chatId);
+                    await this.clearEditParametersFlag(chatId);
                     await this.deleteWaitingState(chatId);
                     await this.deleteTrackedMessages(chatId);
-                    await this.clearEditParametersFlag(chatId);
                 }
 
                 if (data === CallbackData.SNOOZE) {
@@ -53,8 +54,8 @@ export class CallbackQueryCommand extends Command {
                         this.bot.deleteMessage(chatId, trackedMessages[0]);
                     }
 
-                    await this.deleteTrackedMessages(chatId);
                     await this.deleteWaitingState(chatId);
+                    await this.deleteTrackedMessages(chatId);
                 }
 
                 if (data === CallbackData.CONTINUE) {
@@ -85,7 +86,6 @@ export class CallbackQueryCommand extends Command {
                                 } else {
                                     await this.updateUserData(intermediateUserData);
                                     const userData = await this.getUserData(chatId);
-                                    console.log(userData);
                                     if (typeof userData !== "undefined") {
                                         this.bot.editMessageText(prompts.editParameters.confirm(userData), {
                                             chat_id: chatId,

@@ -45,6 +45,8 @@ export class ParametersCommand extends Command {
 
         this.bot.onText(/^\/delete_parameters$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
+            
+            if (await this.getWaitingState(chatId)) return;
 
             const userData = await this.getUserData(chatId);
 
@@ -52,9 +54,7 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, "Чтобы удалить данные, их нужно добавить)");
                 return;
             }
-
-            if (await this.getWaitingState(chatId)) return;
-
+            
             await this.setWaitingState(chatId, WaitingStates.DELETE);
 
             this.bot.sendMessage(chatId, prompts.deleteParameters.confirm, {
@@ -347,7 +347,6 @@ export class ParametersCommand extends Command {
     private async handleDelete(chatId: number, message: TelegramBot.Message): Promise<void> {
         const trackedMessages = await this.getTrackedMessages(chatId);
         const text = message.text || "";
-
 
         if (text.toLowerCase() !== "да") {
             if (typeof trackedMessages[0] !== "undefined") {

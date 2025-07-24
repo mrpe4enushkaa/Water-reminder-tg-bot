@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import { isValidUser } from "../utils/validators";
 
 export abstract class Command {
+    private lifetime: number = 60 * 60 * 16;
+
     constructor(
         protected bot: TelegramBot,
         private userSchema: mongoose.Model<UserData>,
@@ -100,36 +102,52 @@ export abstract class Command {
         if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
         if (!isValidUser(data)) throw new Error("Invalid user data. All fields are required");
         await this.userSchema.create(data);
+        await this.redis.set(`user-data:${data.telegramChatId}`, data, this.lifetime);
     }
 
     protected async getUserData(telegramChatId: number): Promise<UserData | undefined> {
         if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
-        const data = await this.userSchema.findOne({ telegramChatId });
-        return !data ? undefined : data;
+        const redis_data = await this.redis.get(`user-data:${telegramChatId}`);
+        if (!redis_data) {
+            const mongo_data = await this.userSchema.findOne({ telegramChatId });
+            if (!mongo_data) {
+                return undefined;
+            }
+            await this.redis.set(`user-data:${telegramChatId}`, mongo_data, this.lifetime);
+            return mongo_data;
+        }
+        return redis_data;
     }
 
     protected async updateUserData(data: UserData): Promise<void> {
         if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
-        const currentData = await this.getIntermediateUserData(data.telegramChatId);
+
+        const currentData = await this.getUserData(data.telegramChatId);
+
+        if (!currentData) {
+            throw new Error("User data hasn't been added");
+        }
 
         const mergedData: UserData = {
             telegramChatId: data.telegramChatId ?? currentData?.telegramChatId,
-            weight: data.weight ?? currentData?.weight ?? undefined,
-            city: data.city ?? currentData?.city ?? undefined,
-            time: data.time ?? currentData?.time ?? undefined,
-            goal: data.goal ?? currentData?.goal ?? undefined,
-            mute: data.mute ?? currentData?.mute ?? false
+            weight: data.weight ?? currentData?.weight,
+            city: data.city ?? currentData?.city,
+            time: data.time ?? currentData?.time,
+            goal: data.goal ?? currentData?.goal,
+            mute: data.mute ?? currentData?.mute
         }
 
         await this.userSchema.updateOne(
-            { telegramChatId: data.telegramChatId },
+            { telegramChatId: mergedData.telegramChatId },
             { $set: mergedData }
         );
+        await this.redis.set(`user-data:${mergedData.telegramChatId}`, mergedData, this.lifetime);
     }
 
     protected async deleteUserData(telegramChatId: number): Promise<void> {
         if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
         await this.userSchema.deleteOne({ telegramChatId });
+        await this.redis.delete(`user-data:${telegramChatId}`);
     }
 
     protected async continueSendPushNotifications(telegramChatId: number): Promise<void> {
@@ -138,6 +156,8 @@ export abstract class Command {
             { telegramChatId },
             { $set: { mute: false } }
         );
+        const userData = await this.userSchema.findOne({ telegramChatId });
+        if (userData) await this.redis.set(`user-data:${telegramChatId}`, userData, this.lifetime);
     }
 
     protected async stopSendPushNotifications(telegramChatId: number): Promise<void> {
@@ -146,5 +166,7 @@ export abstract class Command {
             { telegramChatId },
             { $set: { mute: true } }
         );
+        const userData = await this.userSchema.findOne({ telegramChatId });
+        if (userData) await this.redis.set(`user-data:${telegramChatId}`, userData, this.lifetime);
     }
 }

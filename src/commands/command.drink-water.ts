@@ -32,8 +32,15 @@ export class DrinkWaterCommand extends Command {
     public handle(): void {
         this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
-
+            
             if (await this.getWaitingState(chatId)) return;
+
+            const userData = await this.getUserData(chatId);
+
+            if (!userData) {
+                this.bot.sendMessage(chatId, "Чтобы пополнить водный баланс, добавьте данные)");
+                return;
+            }
 
             const trackedMessages = await this.getTrackedMessages(chatId);
 

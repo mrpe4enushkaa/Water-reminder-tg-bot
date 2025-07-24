@@ -19,9 +19,20 @@ export class StopCommand extends Command {
     public handle(): void {
         this.bot.onText(/^\/stop$/, async (message): Promise<void> => {
             const chatId = message.chat.id;
-            const state = await this.getWaitingState(chatId);
 
             if (await this.getWaitingState(chatId)) return;
+
+            const userData = await this.getUserData(chatId);
+
+            if (!userData) {
+                this.bot.sendMessage(chatId, "Чтобы прекратить отправку уведомлений, добавьте данные)");
+                return;
+            }
+
+            if (userData.mute) {
+                this.bot.sendMessage(chatId, "Сообщения не отправляются");
+                return;
+            }
 
             await this.setWaitingState(chatId, WaitingStates.STOP);
 
@@ -47,6 +58,8 @@ export class StopCommand extends Command {
                 }
 
                 const trackedMessages = await this.getTrackedMessages(chatId);
+
+                await this.stopSendPushNotifications(chatId);
 
                 if (typeof trackedMessages[0] !== "undefined") {
                     this.bot.editMessageText(prompts.stop.ask, {

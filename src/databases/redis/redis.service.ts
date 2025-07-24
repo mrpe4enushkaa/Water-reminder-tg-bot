@@ -38,8 +38,12 @@ export class RedisService implements RedisOptions {
         return this.client;
     }
 
-    public async set(key: string, data: number | object): Promise<string> {
-        return await this.client.set(key, JSON.stringify(data));
+    public async set(key: string, data: number | object, time?: number): Promise<string> {
+        if (time) {
+            return await this.client.set(key, JSON.stringify(data), "EX", time);
+        } else {
+            return await this.client.set(key, JSON.stringify(data));
+        }
     }
 
     public async get<T = any>(key: string): Promise<T | null> {
