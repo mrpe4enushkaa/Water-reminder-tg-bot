@@ -13,7 +13,6 @@ export abstract class Command {
 
     abstract handle(): void;
 
-
     protected async setWaitingState(chatId: number, state: WaitingStates): Promise<void> {
         await this.redis.set(`waiting-state:${chatId}`, state);
     }

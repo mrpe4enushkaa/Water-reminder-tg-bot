@@ -11,9 +11,11 @@ import { HelpCommand } from "./commands/command.help";
 import { TimeCommand } from "./commands/command.time";
 import { ContinueCommand } from "./commands/command.continue";
 import { StopCommand } from "./commands/command.stop";
+import { MongoService } from "./databases/mongo/mongo.service";
 
 class Bot {
     private bot: TelegramBot;
+    private mongo: MongoService;
     private redis: RedisService;
     private commands: Command[] = [];
 
@@ -21,8 +23,8 @@ class Bot {
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
+        this.mongo = new MongoService();
         this.redis = new RedisService();
-        this.redis.handle();
     }
 
     private setCommands(): void {
@@ -60,9 +62,12 @@ class Bot {
         }
     }
 
-    public init(): void {
+    public async init(): Promise<void> {
         this.setCommands();
         this.registerCommands();
+        this.redis.handle();
+        await this.mongo.handle();
+        this.mongo.createUsersSchema();
     }
 }
 

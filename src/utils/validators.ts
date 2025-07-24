@@ -1,3 +1,5 @@
+import { UserModel } from "../models/user-model.type";
+
 export const isValidWeight = (text: string) =>
     /^(\d+(\.\d+)?)(\s?кг)?$/i.test(text.trim()) && parseFloat(text) > 0;
 
@@ -7,6 +9,19 @@ export const isValidCity = (text: string) =>
 export const isValidTime = (text: string) =>
     /^([01]\d|2[0-3]):[0-5]\d\s*-\s*([01]\d|2[0-3]):[0-5]\d$/.test(text.trim());
 
-
 export const isValidVolume = (text: string) =>
     /^(\d+)(\s?мл)?$/i.test(text.trim()) && parseFloat(text) > 0;
+
+export const isValidUser = (data: Partial<UserModel>): data is UserModel => {
+    return (
+        typeof data.telegramId === "number" &&
+        typeof data.weight === "number" &&
+        typeof data.city === "string" &&
+        Array.isArray(data.time) &&
+        data.time.length === 2 &&
+        typeof data.time[0] === "string" &&
+        typeof data.time[1] === "string" &&
+        typeof data.goal === "number" &&
+        typeof data.mute === "boolean"
+    );
+}
