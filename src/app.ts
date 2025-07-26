@@ -1,6 +1,9 @@
-import TelegramBot, { User } from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
+import mongoose from "mongoose";
 import { ConfigService } from "./config/config.service";
 import { RedisService } from "./databases/redis/redis.service";
+import { MongoService } from "./databases/mongo/mongo.service";
+import { UserData } from "./models/user-data.type";
 import { Command } from "./commands/abstract.command";
 import { CallbackQueryCommand } from "./commands/command.callback-query";
 import { StartCommand } from "./commands/command.start";
@@ -10,22 +13,23 @@ import { HelpCommand } from "./commands/command.help";
 import { TimeCommand } from "./commands/command.time";
 import { ContinueCommand } from "./commands/command.continue";
 import { StopCommand } from "./commands/command.stop";
-import { MongoService } from "./databases/mongo/mongo.service";
-import { UserData } from "./models/user-data.type";
-import mongoose from "mongoose";
+import { TimezoneService } from "./timezone/timezone.service";
+import { TranslateService } from "./translate/translate.service";
 
 class Bot {
     private bot: TelegramBot;
     private mongo: MongoService;
     private redis: RedisService;
     private commands: Command[] = [];
+    private timezone: TimezoneService;
 
-    private userSchema : mongoose.Model<UserData>;
+    private userSchema: mongoose.Model<UserData>;
 
     constructor(private readonly token: string) {
         this.bot = new TelegramBot(this.token, { polling: true });
         this.mongo = new MongoService();
         this.redis = new RedisService();
+        this.timezone = new TimezoneService();
         this.userSchema = this.mongo.createSchema<UserData>("Users", {
             telegramChatId: { type: Number, required: true },
             weight: { type: Number, required: true },

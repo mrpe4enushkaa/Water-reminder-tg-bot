@@ -22,7 +22,7 @@ export class MongoService implements MongoOptions {
         const url = this.config.MONGO_URL;
 
         if (!url) {
-            throw new Error("The MONGO_URL variables are not set");
+            throw new Error("The MONGO_URL variable is not set");
         }
 
         await mongoose.connect(url, {

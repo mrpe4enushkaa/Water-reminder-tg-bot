@@ -31,47 +31,47 @@ export class DrinkWaterCommand extends Command {
     }
 
     public handle(): void {
-        setTimeout(async () => {
-            const allUsers = await this.getAllUserData();
-            allUsers
-                .filter(user => user.mute !== true)
-                .forEach(async (user): Promise<void> => {
-                    const waitingState = await this.getWaitingState(user.telegramChatId);
+        // setTimeout(async () => {
+        //     const allUsers = await this.getAllUserData();
+        //     allUsers
+        //         .filter(user => user.mute !== true)
+        //         .forEach(async (user): Promise<void> => {
+        //             const waitingState = await this.getWaitingState(user.telegramChatId);
 
-                    if (waitingState) {
-                        const trackedMessagesCancel = await this.getTrackedMessages(user.telegramChatId);
+        //             if (waitingState) {
+        //                 const trackedMessagesCancel = await this.getTrackedMessages(user.telegramChatId);
 
-                        if (waitingState === WaitingStates.DRINK || waitingState === WaitingStates.CHOICE) {
-                            trackedMessagesCancel.forEach(idCancel => {
-                                if (typeof idCancel !== "undefined") {
-                                    this.bot.deleteMessage(user.telegramChatId, idCancel);
-                                }
-                            });
-                        } else {
-                            if (typeof trackedMessagesCancel[0] !== "undefined") {
-                                this.bot.editMessageText(prompts.cancel, {
-                                    chat_id: user.telegramChatId,
-                                    message_id: trackedMessagesCancel[0],
-                                    parse_mode: "HTML"
-                                });
-                            }
-                            if (typeof trackedMessagesCancel[1] !== "undefined") {
-                                this.bot.deleteMessage(user.telegramChatId, trackedMessagesCancel[1]);
-                            }
-                        }
+        //                 if (waitingState === WaitingStates.DRINK || waitingState === WaitingStates.CHOICE) {
+        //                     trackedMessagesCancel.forEach(idCancel => {
+        //                         if (typeof idCancel !== "undefined") {
+        //                             this.bot.deleteMessage(user.telegramChatId, idCancel);
+        //                         }
+        //                     });
+        //                 } else {
+        //                     if (typeof trackedMessagesCancel[0] !== "undefined") {
+        //                         this.bot.editMessageText(prompts.cancel, {
+        //                             chat_id: user.telegramChatId,
+        //                             message_id: trackedMessagesCancel[0],
+        //                             parse_mode: "HTML"
+        //                         });
+        //                     }
+        //                     if (typeof trackedMessagesCancel[1] !== "undefined") {
+        //                         this.bot.deleteMessage(user.telegramChatId, trackedMessagesCancel[1]);
+        //                     }
+        //                 }
 
-                        await this.deleteWaitingState(user.telegramChatId);
-                        await this.deleteTrackedMessages(user.telegramChatId);
-                        await this.clearEditParametersFlag(user.telegramChatId);
-                        await this.deleteIntermediateUserData(user.telegramChatId);
-                    }
+        //                 await this.deleteWaitingState(user.telegramChatId);
+        //                 await this.deleteTrackedMessages(user.telegramChatId);
+        //                 await this.clearEditParametersFlag(user.telegramChatId);
+        //                 await this.deleteIntermediateUserData(user.telegramChatId);
+        //             }
 
-                    const trackedMessages = await this.getTrackedMessages(user.telegramChatId);
-                    this.startMessage(user.telegramChatId, trackedMessages, prompts.drinkWater.timeToDrink,
-                        { disable_notification: true, ...keyboardVolumeOptions }
-                    );
-                });
-        }, 1000);
+        //             const trackedMessages = await this.getTrackedMessages(user.telegramChatId);
+        //             this.startMessage(user.telegramChatId, trackedMessages, prompts.drinkWater.timeToDrink,
+        //                 { disable_notification: true, ...keyboardVolumeOptions }
+        //             );
+        //         });
+        // }, 1000);
 
         this.bot.onText(/^\/drink$/, async (message): Promise<void> => {
             const chatId = message.chat.id;

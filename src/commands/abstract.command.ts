@@ -99,14 +99,14 @@ export abstract class Command {
     }
 
     protected async addUserData(data: UserData): Promise<void> {
-        if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
+        if (!this.userSchema) throw new Error("The 'UserSchema' schema is not initialized");
         if (!isValidUser(data)) throw new Error("Invalid user data. All fields are required");
         await this.userSchema.create(data);
         await this.redis.set(`user-data:${data.telegramChatId}`, data, this.lifetime);
     }
 
     protected async getUserData(telegramChatId: number): Promise<UserData | undefined> {
-        if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
+        if (!this.userSchema) throw new Error("The 'UserSchema' schema is not initialized");
         const redis_data = await this.redis.get(`user-data:${telegramChatId}`);
         if (!redis_data) {
             const mongo_data = await this.userSchema.findOne({ telegramChatId });
@@ -120,7 +120,7 @@ export abstract class Command {
     }
 
     protected async updateUserData(data: UserData): Promise<void> {
-        if (!this.userSchema) throw new Error("The 'UserScheme' schema is not initialized");
+        if (!this.userSchema) throw new Error("The 'UserSchema' schema is not initialized");
 
         const currentData = await this.getUserData(data.telegramChatId);
 
@@ -175,4 +175,10 @@ export abstract class Command {
         const allData = await this.userSchema.find();
         return allData;
     }
+
+    // public isCurrentTimeMatch(timezone: string, hour: number, minute: number): boolean {
+    //     const now = DateTime.now().setZone(timezone);
+    //     return now.hour === hour && now.minute === minute;
+    // }
+    // isCurrentTimeMatch(timezone: string, hour: number, minute: number): boolean;
 }
