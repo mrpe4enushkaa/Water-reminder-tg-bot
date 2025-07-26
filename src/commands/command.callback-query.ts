@@ -7,14 +7,18 @@ import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-mar
 import { RedisService } from "../databases/redis/redis.service";
 import { UserData } from "../models/user-data.type";
 import mongoose from "mongoose";
+import { TranslateService } from "../translate/translate.service";
+import { TimezoneService } from "../timezone/timezone.service";
 
 export class CallbackQueryCommand extends Command {
     constructor(
         bot: TelegramBot,
         userSchema: mongoose.Model<UserData>,
-        redis: RedisService
+        redis: RedisService,
+        translate: TranslateService,
+        timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis);
+        super(bot, userSchema, redis, translate, timezone);
     }
 
     public handle(): void {
@@ -76,7 +80,7 @@ export class CallbackQueryCommand extends Command {
 
                                 if (intermediateUserData &&
                                     typeof intermediateUserData.weight === "undefined" &&
-                                    typeof intermediateUserData.city === "undefined" &&
+                                    typeof intermediateUserData.timezone === "undefined" &&
                                     typeof intermediateUserData.time === "undefined") {
                                     this.bot.editMessageText(prompts.editParameters.cancel, {
                                         chat_id: chatId,

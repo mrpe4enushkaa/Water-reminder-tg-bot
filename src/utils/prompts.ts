@@ -35,7 +35,8 @@ export const prompts = {
         end: (data: UserData): string => `
             ✅ <b>Отлично! Данные сохранены:</b>
             \n💪 Вес: <b>${data.weight} кг</b>
-            \n🏙️ Город: <b>${data.city}</b>
+            \n🌆 Город: <b>${data.city}</b>
+            \n🏙️ Часовой пояс: <b>${data.timezone}</b>
             \n🕰️ Время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
             \n💧 Суточная норма: <b>${data.goal} л</b>
             \nЯ начну напоминать тебе пить воду в течение дня! 🔔`
@@ -56,7 +57,8 @@ export const prompts = {
         confirm: (data: UserData): string => `
             ✅ <b>Готово! Данные обновлены:</b>
             \n💪 Новый вес: <b>${data.weight} кг</b>
-            \n🏙️ Новый город: <b>${data.city}</b>
+            \n🌆 Новый город: <b>${data.city}</b>
+            \n🏙️ Новый часовой пояс: <b>${data.timezone}</b>
             \n🕰️ Новое время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
             \n💧 Новая суточная норма: <b>${data.goal} л</b>
             \nЯ буду напоминать тебе пить воду в соответствии с новыми параметрами 🔔`,
@@ -75,11 +77,12 @@ export const prompts = {
     },
 
     infoParameters: {
-        need: `обавьте свою информацию, чтобы увидеть её здесь! 👀`,
+        need: `Добавьте свою информацию, чтобы увидеть её здесь! 👀`,
         data: (data: UserData): string => `
             📋 <b>Твои текущие параметры:</b>
             \n💪 Вес: <b>${data.weight} кг</b>
-            \n🏙️ Город: <b>${data.city}</b>
+            \n🌆 Город: <b>${data.city}</b>
+            \n🏙️ Часовой пояс: <b>${data.timezone}</b>
             \n🕰️ Время бодрствования: <b>${data.time![0]} – ${data.time![1]}</b>
             \n💧 Суточная норма: <b>${data.goal} л</b>`
     },

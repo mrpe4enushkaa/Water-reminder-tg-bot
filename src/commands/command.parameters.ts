@@ -7,14 +7,18 @@ import { inlineKeyboardCancel, inlineKeyboardContinue } from "../utils/reply-mar
 import { RedisService } from "../databases/redis/redis.service";
 import mongoose from "mongoose";
 import { UserData } from "../models/user-data.type";
+import { TranslateService } from "../translate/translate.service";
+import { TimezoneService } from "../timezone/timezone.service";
 
 export class ParametersCommand extends Command {
     constructor(
         bot: TelegramBot,
         userSchema: mongoose.Model<UserData>,
         redis: RedisService,
+        translate: TranslateService,
+        timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis);
+        super(bot, userSchema, redis, translate, timezone);
     }
 
     public handle(): void {
@@ -181,10 +185,11 @@ export class ParametersCommand extends Command {
         await this.setIntermediateUserData({
             telegramChatId: chatId,
             weight: weight,
-            city: undefined,
             time: undefined,
             goal: parseFloat((weight * 0.035).toFixed(2)),
-            mute: false
+            mute: false,
+            timezone: undefined,
+            city: undefined
         });
 
         this.bot.sendMessage(chatId, editFlag ? prompts.editParameters.city : prompts.addParameters.city, {
@@ -214,8 +219,9 @@ export class ParametersCommand extends Command {
         }
 
         const text = message?.text || "";
+        const timezone = await this.getTimezone(text);
 
-        if (!isValidCity(text)) {
+        if (!isValidCity(text) || typeof timezone === "undefined") {
             this.bot.deleteMessage(chatId, message.message_id);
             if (typeof trackedMessages[1] === "undefined") {
                 this.bot.sendMessage(chatId, prompts.addParameters.correctCity, {
@@ -249,10 +255,11 @@ export class ParametersCommand extends Command {
         await this.setIntermediateUserData({
             telegramChatId: intermediateUserData.telegramChatId,
             weight: intermediateUserData.weight,
-            city: text,
             time: intermediateUserData.time,
             goal: intermediateUserData.goal,
-            mute: intermediateUserData.mute
+            mute: intermediateUserData.mute,
+            timezone: timezone,
+            city: text[0].toLocaleUpperCase() + text.slice(1).toLocaleLowerCase()
         });
 
         this.bot.sendMessage(chatId, editFlag ? prompts.editParameters.time : prompts.addParameters.time, {
@@ -314,10 +321,11 @@ export class ParametersCommand extends Command {
         await this.setIntermediateUserData({
             telegramChatId: intermediateUserData.telegramChatId,
             weight: intermediateUserData.weight,
-            city: intermediateUserData.city,
             time: [wakeStr, sleepStr],
             goal: intermediateUserData.goal,
-            mute: intermediateUserData.mute
+            mute: intermediateUserData.mute,
+            timezone: intermediateUserData.timezone,
+            city: intermediateUserData.city,
         });
 
         intermediateUserData = await this.getIntermediateUserData(chatId);

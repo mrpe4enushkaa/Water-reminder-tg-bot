@@ -1,3 +1,3 @@
 export interface TranslateOptions {
-    translate(text: string): Promise<string>;
+    translation(text: string): Promise<string>;
 }

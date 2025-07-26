@@ -5,6 +5,8 @@ import { RedisService } from "../databases/redis/redis.service";
 import { UserData } from "../models/user-data.type";
 import mongoose from "mongoose";
 import { isValidUser } from "../utils/validators";
+import { TranslateService } from "../translate/translate.service";
+import { TimezoneService } from "../timezone/timezone.service";
 
 export abstract class Command {
     private lifetime: number = 60 * 60 * 16;
@@ -12,7 +14,9 @@ export abstract class Command {
     constructor(
         protected bot: TelegramBot,
         private userSchema: mongoose.Model<UserData>,
-        private redis: RedisService
+        private redis: RedisService,
+        private translate: TranslateService,
+        private timezone: TimezoneService
     ) { }
 
     abstract handle(): void;
@@ -72,10 +76,11 @@ export abstract class Command {
         const mergedData: UserData = {
             telegramChatId: enteredData.telegramChatId ?? currentData?.telegramChatId,
             weight: enteredData.weight ?? currentData?.weight ?? undefined,
-            city: enteredData.city ?? currentData?.city ?? undefined,
             time: enteredData.time ?? currentData?.time ?? undefined,
             goal: enteredData.goal ?? currentData?.goal ?? undefined,
-            mute: enteredData.mute ?? currentData?.mute ?? false
+            mute: enteredData.mute ?? currentData?.mute ?? false,
+            timezone: enteredData.timezone ?? currentData?.timezone,
+            city: enteredData.city ?? currentData?.city
         }
 
         await this.redis.set(`intermediate-user-data:${enteredData.telegramChatId}`, mergedData);
@@ -85,10 +90,11 @@ export abstract class Command {
         const emptyData: UserData = {
             telegramChatId,
             weight: undefined,
-            city: undefined,
             time: undefined,
             goal: undefined,
-            mute: false
+            mute: false,
+            timezone: undefined,
+            city: undefined
         }
         const data = await this.redis.get<UserData>(`intermediate-user-data:${telegramChatId}`);
         return !data ? emptyData : data;
@@ -131,10 +137,11 @@ export abstract class Command {
         const mergedData: UserData = {
             telegramChatId: data.telegramChatId ?? currentData?.telegramChatId,
             weight: data.weight ?? currentData?.weight,
-            city: data.city ?? currentData?.city,
             time: data.time ?? currentData?.time,
             goal: data.goal ?? currentData?.goal,
-            mute: data.mute ?? currentData?.mute
+            mute: data.mute ?? currentData?.mute,
+            timezone: data.timezone ?? currentData?.timezone,
+            city: data.city ?? currentData?.city
         }
 
         await this.userSchema.updateOne(
@@ -181,4 +188,10 @@ export abstract class Command {
     //     return now.hour === hour && now.minute === minute;
     // }
     // isCurrentTimeMatch(timezone: string, hour: number, minute: number): boolean;
+
+    protected async getTimezone(city: string): Promise<string | undefined> {
+        const translated = await this.translate.translation(city);
+        const timezone = await this.timezone.getTimezone(translated);
+        return timezone;
+    }
 }

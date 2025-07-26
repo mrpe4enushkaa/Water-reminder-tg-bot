@@ -22,6 +22,7 @@ class Bot {
     private redis: RedisService;
     private commands: Command[] = [];
     private timezone: TimezoneService;
+    private translate: TranslateService;
 
     private userSchema: mongoose.Model<UserData>;
 
@@ -30,9 +31,11 @@ class Bot {
         this.mongo = new MongoService();
         this.redis = new RedisService();
         this.timezone = new TimezoneService();
+        this.translate = new TranslateService();
         this.userSchema = this.mongo.createSchema<UserData>("Users", {
             telegramChatId: { type: Number, required: true },
             weight: { type: Number, required: true },
+            timezone: { type: String, required: true },
             city: { type: String, required: true },
             time: {
                 type: [String],
@@ -67,14 +70,14 @@ class Bot {
 
     private registerCommands(): void {
         this.commands = [
-            new CallbackQueryCommand(this.bot, this.userSchema, this.redis),
-            new StartCommand(this.bot, this.userSchema, this.redis),
-            new ParametersCommand(this.bot, this.userSchema, this.redis),
-            new DrinkWaterCommand(this.bot, this.userSchema, this.redis),
-            new HelpCommand(this.bot, this.userSchema, this.redis),
-            new TimeCommand(this.bot, this.userSchema, this.redis),
-            new ContinueCommand(this.bot, this.userSchema, this.redis),
-            new StopCommand(this.bot, this.userSchema, this.redis)
+            new CallbackQueryCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new StartCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new ParametersCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new DrinkWaterCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new HelpCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new TimeCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new ContinueCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
+            new StopCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone)
         ];
 
         for (const command of this.commands) {

@@ -4,14 +4,18 @@ import { prompts } from "../utils/prompts";
 import { RedisService } from "../databases/redis/redis.service";
 import mongoose from "mongoose";
 import { UserData } from "../models/user-data.type";
+import { TranslateService } from "../translate/translate.service";
+import { TimezoneService } from "../timezone/timezone.service";
 
 export class TimeCommand extends Command {
     constructor(
         bot: TelegramBot,
         userSchema: mongoose.Model<UserData>,
-        redis: RedisService
+        redis: RedisService,
+        translate: TranslateService,
+        timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis);
+        super(bot, userSchema, redis, translate, timezone);
     }
 
     public handle(): void {

@@ -22,7 +22,7 @@ export class TimezoneService implements TimezoneOptions {
     }
 
     public async getTimezone(city: string): Promise<string | undefined> {
-        const urlOpenCage = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city)}&key=${this.config.OPENCAGE_API_KEY}`;
+        const urlOpenCage = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(city.toLocaleLowerCase())}&key=${this.config.OPENCAGE_API_KEY}`;
         const responseOpenCage = await fetch(urlOpenCage);
         const dataOpenCage = await responseOpenCage.json();
 

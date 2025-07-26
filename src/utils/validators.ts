@@ -17,6 +17,7 @@ export const isValidUser = (data: Partial<UserData>): data is UserData => {
         typeof data.telegramChatId === "number" &&
         typeof data.weight === "number" &&
         typeof data.city === "string" &&
+        typeof data.timezone === "string" &&
         Array.isArray(data.time) &&
         data.time.length === 2 &&
         typeof data.time[0] === "string" &&
