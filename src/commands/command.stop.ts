@@ -25,12 +25,12 @@ export class StopCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы прекратить отправку уведомлений, добавьте данные)");
+                this.bot.sendMessage(chatId, prompts.stop.need);
                 return;
             }
 
             if (userData.mute) {
-                this.bot.sendMessage(chatId, "Сообщения не отправляются");
+                this.bot.sendMessage(chatId, prompts.stop.statement);
                 return;
             }
 

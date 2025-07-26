@@ -23,7 +23,7 @@ export class ParametersCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (userData) {
-                this.bot.sendMessage(chatId, "Вам не нужно добавлят данные");
+                this.bot.sendMessage(chatId, prompts.addParameters.dont);
                 return;
             }
 
@@ -35,7 +35,7 @@ export class ParametersCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы изменять данные, их нужно добавить)");
+                this.bot.sendMessage(chatId, prompts.editParameters.need);
                 return;
             }
 
@@ -51,7 +51,7 @@ export class ParametersCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы удалить данные, их нужно добавить)");
+                this.bot.sendMessage(chatId, prompts.deleteParameters.need);
                 return;
             }
 
@@ -75,7 +75,7 @@ export class ParametersCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (typeof userData === "undefined") {
-                this.bot.sendMessage(chatId, "Добавьте свою информацию, чтобы просмотреть ее", {
+                this.bot.sendMessage(chatId, prompts.infoParameters.need, {
                     parse_mode: "HTML",
                     reply_markup: {
                         remove_keyboard: true
@@ -84,7 +84,7 @@ export class ParametersCommand extends Command {
                 return;
             }
 
-            this.bot.sendMessage(chatId, prompts.info_parameters(userData), {
+            this.bot.sendMessage(chatId, prompts.infoParameters.data(userData), {
                 parse_mode: "HTML",
                 reply_markup: {
                     remove_keyboard: true

@@ -81,7 +81,7 @@ export class DrinkWaterCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы пополнить водный баланс, добавьте данные)");
+                this.bot.sendMessage(chatId, prompts.drinkWater.need);
                 return;
             }
 

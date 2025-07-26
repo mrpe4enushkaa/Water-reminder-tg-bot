@@ -23,13 +23,13 @@ export class ContinueCommand extends Command {
             const userData = await this.getUserData(chatId);
 
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы продолжить отправку уведомлений, добавьте данные)");
+                this.bot.sendMessage(chatId, prompts.continue.need);
                 return;
             }
             console.log(userData.mute)
             await this.continueSendPushNotifications(chatId);
 
-            this.bot.sendMessage(chatId, prompts.continue, {
+            this.bot.sendMessage(chatId, prompts.continue.go, {
                 parse_mode: "HTML",
                 reply_markup: {
                     remove_keyboard: true

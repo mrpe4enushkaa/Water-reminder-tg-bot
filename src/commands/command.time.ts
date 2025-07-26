@@ -21,13 +21,13 @@ export class TimeCommand extends Command {
             if (await this.getWaitingState(chatId)) return;
 
             const userData = await this.getUserData(chatId);
-            
+
             if (!userData) {
-                this.bot.sendMessage(chatId, "Чтобы посмотреть время до следующего push-уведомления, добавьте данные)");
+                this.bot.sendMessage(chatId, prompts.time.need);
                 return;
             }
 
-            this.bot.sendMessage(chatId, prompts.time("0ч"), { // edit 0ч
+            this.bot.sendMessage(chatId, prompts.time.to("0ч"), { // edit 0ч
                 parse_mode: "HTML",
                 reply_markup: {
                     remove_keyboard: true
