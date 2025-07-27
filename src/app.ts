@@ -15,6 +15,8 @@ import { ContinueCommand } from "./commands/command.continue";
 import { StopCommand } from "./commands/command.stop";
 import { TimezoneService } from "./timezone/timezone.service";
 import { TranslateService } from "./translate/translate.service";
+import { TimeService } from "./time/time.service";
+import { CommandDeps } from "./models/command-deps.type";
 
 class Bot {
     private bot: TelegramBot;
@@ -23,6 +25,7 @@ class Bot {
     private commands: Command[] = [];
     private timezone: TimezoneService;
     private translate: TranslateService;
+    private time: TimeService;
 
     private userSchema: mongoose.Model<UserData>;
 
@@ -32,11 +35,14 @@ class Bot {
         this.redis = new RedisService();
         this.timezone = new TimezoneService();
         this.translate = new TranslateService();
+        this.time = new TimeService();
+
         this.userSchema = this.mongo.createSchema<UserData>("Users", {
             telegramChatId: { type: Number, required: true },
+            username: { type: String, required: true },
             weight: { type: Number, required: true },
-            timezone: { type: String, required: true },
             city: { type: String, required: true },
+            timezone: { type: String, required: true },
             time: {
                 type: [String],
                 required: true,
@@ -69,16 +75,27 @@ class Bot {
     }
 
     private registerCommands(): void {
-        this.commands = [
-            new CallbackQueryCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new StartCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new ParametersCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new DrinkWaterCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new HelpCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new TimeCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new ContinueCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone),
-            new StopCommand(this.bot, this.userSchema, this.redis, this.translate, this.timezone)
+        const deps: CommandDeps = [
+            this.bot,
+            this.userSchema,
+            this.redis,
+            this.translate,
+            this.time,
+            this.timezone
         ];
+
+        const commands = [
+            CallbackQueryCommand,
+            StartCommand,
+            ParametersCommand,
+            DrinkWaterCommand,
+            HelpCommand,
+            TimeCommand,
+            ContinueCommand,
+            StopCommand
+        ];
+
+        this.commands = commands.map(Command => new Command(...deps))
 
         for (const command of this.commands) {
             command.handle();

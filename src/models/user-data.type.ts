@@ -1,5 +1,6 @@
 export type UserData = {
     telegramChatId: number;
+    username: string | undefined;
     weight: number | undefined;
     city: string | undefined;
     timezone: string | undefined;

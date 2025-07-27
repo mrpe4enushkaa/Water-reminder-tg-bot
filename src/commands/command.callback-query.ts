@@ -9,6 +9,7 @@ import { UserData } from "../models/user-data.type";
 import mongoose from "mongoose";
 import { TranslateService } from "../translate/translate.service";
 import { TimezoneService } from "../timezone/timezone.service";
+import { TimeService } from "../time/time.service";
 
 export class CallbackQueryCommand extends Command {
     constructor(
@@ -16,9 +17,10 @@ export class CallbackQueryCommand extends Command {
         userSchema: mongoose.Model<UserData>,
         redis: RedisService,
         translate: TranslateService,
+        time: TimeService,
         timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis, translate, timezone);
+        super(bot, userSchema, redis, translate, time, timezone);
     }
 
     public handle(): void {

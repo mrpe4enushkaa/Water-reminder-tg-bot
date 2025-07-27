@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import { UserData } from "../models/user-data.type";
 import { TimezoneService } from "../timezone/timezone.service";
 import { TranslateService } from "../translate/translate.service";
+import { TimeService } from "../time/time.service";
 
 export class StartCommand extends Command {
     constructor(
@@ -13,9 +14,10 @@ export class StartCommand extends Command {
         userSchema: mongoose.Model<UserData>,
         redis: RedisService,
         translate: TranslateService,
+        time: TimeService,
         timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis, translate, timezone);
+        super(bot, userSchema, redis, translate, time, timezone);
     }
 
     public handle(): void {

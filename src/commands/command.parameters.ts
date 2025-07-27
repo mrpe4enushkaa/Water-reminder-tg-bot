@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import { UserData } from "../models/user-data.type";
 import { TranslateService } from "../translate/translate.service";
 import { TimezoneService } from "../timezone/timezone.service";
+import { TimeService } from "../time/time.service";
 
 export class ParametersCommand extends Command {
     constructor(
@@ -16,9 +17,10 @@ export class ParametersCommand extends Command {
         userSchema: mongoose.Model<UserData>,
         redis: RedisService,
         translate: TranslateService,
+        time: TimeService,
         timezone: TimezoneService
     ) {
-        super(bot, userSchema, redis, translate, timezone);
+        super(bot, userSchema, redis, translate, time, timezone);
     }
 
     public handle(): void {
@@ -184,12 +186,13 @@ export class ParametersCommand extends Command {
 
         await this.setIntermediateUserData({
             telegramChatId: chatId,
+            username: `@${message.chat.username}`,
             weight: weight,
+            city: undefined,
+            timezone: undefined,
             time: undefined,
             goal: parseFloat((weight * 0.035).toFixed(2)),
-            mute: false,
-            timezone: undefined,
-            city: undefined
+            mute: false
         });
 
         this.bot.sendMessage(chatId, editFlag ? prompts.editParameters.city : prompts.addParameters.city, {
@@ -254,12 +257,13 @@ export class ParametersCommand extends Command {
 
         await this.setIntermediateUserData({
             telegramChatId: intermediateUserData.telegramChatId,
+            username: intermediateUserData.username,
             weight: intermediateUserData.weight,
+            city: text[0].toLocaleUpperCase() + text.slice(1).toLocaleLowerCase(),
+            timezone: timezone,
             time: intermediateUserData.time,
             goal: intermediateUserData.goal,
             mute: intermediateUserData.mute,
-            timezone: timezone,
-            city: text[0].toLocaleUpperCase() + text.slice(1).toLocaleLowerCase()
         });
 
         this.bot.sendMessage(chatId, editFlag ? prompts.editParameters.time : prompts.addParameters.time, {
@@ -320,12 +324,13 @@ export class ParametersCommand extends Command {
 
         await this.setIntermediateUserData({
             telegramChatId: intermediateUserData.telegramChatId,
+            username: intermediateUserData.username,
             weight: intermediateUserData.weight,
+            city: intermediateUserData.city,
+            timezone: intermediateUserData.timezone,
             time: [wakeStr, sleepStr],
             goal: intermediateUserData.goal,
             mute: intermediateUserData.mute,
-            timezone: intermediateUserData.timezone,
-            city: intermediateUserData.city,
         });
 
         intermediateUserData = await this.getIntermediateUserData(chatId);
@@ -342,6 +347,11 @@ export class ParametersCommand extends Command {
                 this.bot.sendMessage(chatId, prompts.addParameters.end(userData), {
                     parse_mode: "HTML"
                 });
+            }
+            if (typeof userData.goal !== "undefined" &&
+                typeof userData.time !== "undefined" &&
+                typeof userData.timezone !== "undefined") {
+                this.setSchedule(chatId, userData.timezone, userData.goal, userData.time);
             }
         } else {
             this.bot.sendMessage(chatId, prompts.error(editFlag ? "/edit_parameters" : "/add_parameters"), {
